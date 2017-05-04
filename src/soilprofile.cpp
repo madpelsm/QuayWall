@@ -1,7 +1,8 @@
 #include <soilprofile.h>
+#include <iostream>
 
-Soilprofile::Soilprofile(std::vector<Soillayer> Soillayers)
-    : mSoillayers(Soillayers) {  // added soillayers
+Soilprofile::Soilprofile(std::vector<Soillayer> Soillayers, double waterHeight)
+    : mSoillayers(Soillayers), waterHeight(waterHeight) {  // added soillayers
 }
 
 void Soilprofile::addSoilLayer(Soillayer soillayer) {
@@ -31,7 +32,7 @@ double Soilprofile::getEffectiveSoilePressure(double depth) {
             } else if (waterHeight < upbounds) {
                 effectivePressure +=
                     (lowbounds - upbounds) * mSoillayers[i].mEffectiveWeight;
-            } else if (waterHeight < lowbounds && waterHeight > upbounds) {
+            } else if (waterHeight <= lowbounds && waterHeight >= upbounds) {
                 effectivePressure +=
                     (lowbounds - waterHeight) * mSoillayers[i].mEffectiveWeight;
                 effectivePressure +=
