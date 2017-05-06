@@ -8,10 +8,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/})
 
+find_package(GLM REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR}/ext/)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
+include_directories(${GLM_INCLUDE_DIR})
 
 message("source dir = ${PROJECT_SOURCE_DIR}")
 
