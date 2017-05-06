@@ -1,7 +1,7 @@
 #pragma once
 #define _USE_MATH_DEFINES
 #include <cmath>
-//weights are in kN/m^3
+// weights are in kN/m^3
 
 class Soillayer {
    public:
@@ -11,6 +11,7 @@ class Soillayer {
     // calculating safetyweight is less cluttery than the phi's
     Soillayer(double mUpperbounds, double mLowerBounds, double mDryWeight,
               double mPorosity, double mPhi);
+    ~Soillayer();
 
     void calculateSafetyValues();
     void calculateWeights();

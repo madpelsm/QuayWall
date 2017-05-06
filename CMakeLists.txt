@@ -8,9 +8,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules/})
-
-find_package(GLM REQUIRED)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules/})
+message(${CMAKE_MODULE_PATH})
+find_package(glm REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR}/ext/)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
@@ -21,5 +21,5 @@ message("source dir = ${PROJECT_SOURCE_DIR}")
 file(GLOB KAAIMUUR_SRC_FILES "./src/*.cpp")
 file(GLOB KAAIMUUR_HDR_FILES "./src/*.h")
 
-ADD_EXECUTABLE(Kaaimuur ${KAAIMUUR_SRC_FILES} ${KAAIMUUR_HDR_FILES} ) 
+ADD_EXECUTABLE(Kaaimuur ${KAAIMUUR_SRC_FILES} ${KAAIMUUR_HDR_FILES} )
 target_link_libraries(Kaaimuur)

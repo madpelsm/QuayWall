@@ -28,8 +28,30 @@ void Lmuur::calculateProperties() {
     mytoe = mHm + mHv + mtoe / 2.0;
     // general p.o.g.
     mA = mAI + mAII + mAtoe;
-    mx = (mxI*mAI + mxII*mAII + mxtoe*mAtoe) / mA;
-    my = (myI*mAI + myII*mAII + mytoe*mAtoe) / mA;
+    mx = (mxI * mAI + mxII * mAII + mxtoe * mAtoe) / mA;
+    my = (myI * mAI + myII * mAII + mytoe * mAtoe) / mA;
     // calculate weight force
     mForce = gamma * mA;
+    mForceVector = ForceVector(glm::vec2(0, mForce), glm::vec2(mx, my));
 }
+
+void Lmuur::calculateActiveSoilPressures() {
+    double phi_d = M_PI;
+    for (size_t i = 0; i < rightProfile.mSoillayers.size(); ++i) {
+        if (rightProfile.mSoillayers[i].mPhiA * M_PI / 180.0 < phi_d)
+            phi_d = rightProfile.mSoillayers[i].mPhiA;
+    }
+
+    double yTemp = mHm - mBr * tan(M_PI / 4.0 + M_PI * phi_d / 180.0);
+    for (size_t i = 0; i < rightProfile.mSoillayers.size(); ++i) {
+        double h = rightProfile.mSoillayers[i].mUpperbounds;
+        if (h < yTemp) {
+            double lower =
+                std::min(rightProfile.mSoillayers[i].mLowerBounds, mHm);
+            if(lower<yTemp){
+                // glijlijn is nog niet bereikt
+            }
+        }
+    }
+}
+Lmuur::~Lmuur() {}

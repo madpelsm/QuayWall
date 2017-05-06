@@ -21,3 +21,5 @@ void Soillayer::calculateSafetyValues() {
     mPhiB = mphi;
     mPhiC = mPhiA;
 }
+
+Soillayer::~Soillayer() {}
