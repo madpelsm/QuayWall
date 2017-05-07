@@ -1,13 +1,13 @@
-#include <iostream>
-
 #include <Lmuur.h>
 #include <soillayer.h>
 #include <soilprofile.h>
+#include <iostream>
 #include <vector>
+
 int main() {
     // Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr, double
     // gamma, double toe);
-    Lmuur Lm = Lmuur(21, 3, 2, 2, 28, 25);
+    Lmuur Lm = Lmuur(26, 2, 3, 2, 20, 25, 0);
     std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
               << Lm.mOwnWeight.mPoE.y << std::endl;
     Soillayer R1 = Soillayer(0.0, 3.0, 16.0, 0.39, 15.0);
@@ -24,7 +24,24 @@ int main() {
 
     Lm.addSoilprofiles(Right, Left);
 
+    Lm.setSolidHeightDifference(21);
+
     Lm.calculateAll();
+
+    std::cout << "kaaimuur met hoogte vanaf de voet: " << Lm.mHm
+              << "[m] en dikte " << Lm.mBm << "[m]"
+              << "\neen funderingszooldikte van " << Lm.mHv << "[m]"
+              << "\nlinkervoetbreedte: " << Lm.mBl << "[m]"
+              << "\nDe rechter voet is " << Lm.mBr << "[m]" << std::endl;
+    std::cout << "Force with magintude (Fx,Fy): ("
+              << Lm.mResultingForce.mForce.x << ","
+              << Lm.mResultingForce.mForce.y
+              << ")\n and point of engagement (x,y): ("
+              << Lm.mResultingForce.mPoE.x << "," << Lm.mResultingForce.mPoE.y
+              << ")" << std::endl;
+    Lm.writeToCSV();
+
+    std::cout << Lm.kastnerH << std::endl;
 
     return 0;
 }

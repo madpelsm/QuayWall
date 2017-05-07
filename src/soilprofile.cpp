@@ -63,7 +63,7 @@ ForceVector Soilprofile::getQa(double lambda_a, Soillayer &soil, double upper,
         Qa_1 = 0.5 * lambda_a *
                (gamma * (lower - upper) * (lower - upper) +
                 2 * getEffectiveSoilePressure(depth) * cos(alpha) /
-                    (cos(alpha - epsilon)) * (lower - upper));
+                    (cos(alpha - epsilon)) * ((lower - upper)));
         Qa_1PoE =
             getPoE(gamma, (lower - upper), getEffectiveSoilePressure(depth));
 
@@ -88,7 +88,7 @@ ForceVector Soilprofile::getQa(double lambda_a, Soillayer &soil, double upper,
         ForceVector(glm::vec2(Qa, 0), glm::vec2(0, resultingPoE));
     // correction to be made when putting it on the construction, this is the
     // magnitude in x,positive, with the right PoE_y, but not the right
-    // direction..
+    // direction also the right x is dependent on the surface
     return Qactief;
 }
 
