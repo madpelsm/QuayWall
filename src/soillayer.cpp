@@ -7,6 +7,8 @@ Soillayer::Soillayer(double mUpperbounds, double mLowerBounds,
       mDryWeight(mDryWeight),
       mPorosity(mPorosity),
       mphi(mPhi) {
+    // input in degree, internal radians
+    mphi = mphi * M_PI / 180.0;
     calculateSafetyValues();
     calculateWeights();
 }
@@ -17,8 +19,9 @@ void Soillayer::calculateWeights() {
 }
 
 void Soillayer::calculateSafetyValues() {
-    mPhiA = 180.0 / M_PI * atan(tan(mphi * M_PI / 180.0) / 1.25);
-    mPhiB = mphi;
+    // input is degree, internal is radians
+    mPhiA = atan(tan(mphi) / 1.25);
+    mPhiB = M_PI * mphi / 180.0;
     mPhiC = mPhiA;
 }
 

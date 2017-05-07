@@ -7,16 +7,24 @@
 int main() {
     // Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr, double
     // gamma, double toe);
-    Lmuur L1 = Lmuur(21, 3, 2, 2, 28, 25);
-    std::cout << L1.ForceVector.mForce.y << "," << L1.ForceVector.mPoE.x << ","
-              << L1.ForceVector.mPoE.y << std::endl;
-    Soillayer Layer1 = Soillayer(0, 3, 16, 0.39, 15);
-    std::vector<Soillayer> v1;
-    v1.push_back(Layer1);
-    std::cout << Layer1.mEffectiveWeight << "," << Layer1.mWetWeight
-              << std::endl;
-    Soilprofile p1 = Soilprofile(v1, 0);
-    std::cout << p1.getEffectiveSoilePressure(2) << std::endl;
+    Lmuur Lm = Lmuur(21, 3, 2, 2, 28, 25);
+    std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
+              << Lm.mOwnWeight.mPoE.y << std::endl;
+    Soillayer R1 = Soillayer(0.0, 3.0, 16.0, 0.39, 15.0);
+    Soillayer R2 = Soillayer(3.0, 28.0, 18.0, 0.35, 25.0);
+    Soillayer R3 = Soillayer(28.0, 100.0, 18.0, 0.35, 35.0);
+    Soillayer L1 = Soillayer(0.0, 12.0, 18.0, 0.35, 25.0);
+    Soillayer L2 = Soillayer(12.0, 100.0, 18.0, 0.35, 35.0);
+
+    std::vector<Soillayer> rhs{R1, R2, R3};
+    std::vector<Soillayer> lhs{L1, L2};
+
+    Soilprofile Right = Soilprofile(rhs, 3.0);
+    Soilprofile Left = Soilprofile(lhs, -12.0);
+
+    Lm.addSoilprofiles(Right, Left);
+
+    Lm.calculateAll();
 
     return 0;
 }

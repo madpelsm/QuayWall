@@ -3,6 +3,7 @@
 #include <soillayer.h>
 #include <cmath>
 #include <vector>
+#include <forcevector.h>
 class Soilprofile {
    public:
     std::vector<Soillayer> mSoillayers;
@@ -15,7 +16,7 @@ class Soilprofile {
     void addSoilLayer(Soillayer soillayer);
     void replaceSoilprofile(std::vector<Soillayer> soillayers);
     double getEffectiveSoilePressure(double depth);
-    double getQa(double lambda_a, Soillayer& soil, double upper, double lower,
+    ForceVector getQa(double lambda_a, Soillayer& soil, double upper, double lower,
                  double depth, double alpha = 0, double epsilon = 0);
     double getPoE(double gamma, double thickness, double q_0);
     double getLambda_a(double phi, double alpha, double psi, double epsilon);
