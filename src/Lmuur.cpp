@@ -378,6 +378,8 @@ void Lmuur::calculateAll() {
     calculateBuoyancy();
     calculateBoussinesqLoads();
     calculateResultingForce();
+
+    makeUnityChecks();
 }
 void Lmuur::calculateActiveSoilPressureLeft() {}
 double Lmuur::squareSurface(double height, double width) {
@@ -449,9 +451,83 @@ void Lmuur::writeToCSV() {
     file << "Fk," << mResultingForce.mForce.x << "," << mResultingForce.mForce.y
          << "," << mResultingForce.mPoE.x << "," << mResultingForce.mPoE.y
          << "\n";
+    file << "UNITY CHECKS\n";
+    file << "type,R_d,E_d,veiligheid\n";
+    file << "Evewichtsdraagvermogen," << R_d << ","
+         << mResultingForce.mForce.y * 100 << ","
+         << R_d / (100 * mResultingForce.mForce.y) << "\n";
+    file << "Schuiven," << RH_d << "," << mResultingForce.mForce.x << ","
+         << abs(RH_d / mResultingForce.mForce.x) << "\n";
 
     file.close();
     std::cout << "Write complete!" << std::endl;
+}
+
+void Lmuur::makeUnityChecks() {
+    R_d = calculateR_d(leftProfile.mSoillayers[0].mPhiA, leftProfile,
+                       mHm + mHv - mSoilHeightDifference, 1);
+    RH_d = mResultingForce.mForce.y * tan(leftProfile.mSoillayers[0].mPhiA);
+}
+
+double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
+                           double effectiveCohesion_safetyF) {
+    // Safetyfactors on cohesion
+    double c_d = mCohesion / effectiveCohesion_safetyF;
+
+    double B = mBz;
+    double L = 100;
+    // invloedsfactoren
+    double N_q = exp(M_PI * tan(phi_d)) * tan(M_PI / 4.0 + phi_d / 2.0) *
+                 tan(M_PI / 4.0 + phi_d / 2.0);
+    double N_c = 0;
+    if (phi_d != 0) {
+        N_c = (N_q - 1) / tan(phi_d);
+    } else if (phi_d == 0) {
+        N_c = M_PI + 2;
+    }
+    double N_g = 2 * (N_q - 1) * tan(phi_d);
+    // korrespanning aan aanzet
+    double p_t = soilprofile.getEffectiveSoilePressure(depth);
+    // dieptefactore d = 1
+    double d_c = 1;
+    double d_q = 1;
+    // vormfactoren
+    double s_q = 1 + B / L * sin(phi_d);
+    double s_c = (s_q * N_q - 1) / (N_q - 1);
+    double s_g = 1 - 0.3 * B / L;
+    // effectief volumegewicht van steungevende grond die er naast ligt
+    double g_k = 10000;
+    for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
+        if (depth > soilprofile.mSoillayers[i].mUpperbounds) {
+            g_k = std::min(g_k, soilprofile.mSoillayers[i].mEffectiveWeight);
+        }
+    }
+    if (soilprofile.mSoillayers.size() != 0) {
+        g_k = std::min(soilprofile.mSoillayers[0].mEffectiveWeight, g_k);
+    }
+    // hellingsfactoren
+    double i_q =
+        pow((1 -
+             0.7 * abs(mResultingForce.mForce.x) /
+                 (abs(mResultingForce.mForce.y) + B * L / (tan(phi_d) * c_d))),
+            3);
+    double i_c = (i_q * N_q - 1) / (N_q - 1);
+    double i_g =
+        pow((1 -
+             abs(mResultingForce.mForce.x) /
+                 (abs(mResultingForce.mForce.y) + B * L / (tan(phi_d) * c_d))),
+            3);
+    double R_dToReturn =
+        B * L * (d_q * s_q * N_q * p_t * i_q + d_c * s_c * N_c * i_c * c_d +
+                 s_g * N_g * g_k * i_g * B / 2.0);
+    // std::cout << "q_u = d_q*s_q*N_q*p_t+d_c*s_c*N_c*c+s_g*N_g*g_k*B/2\n"
+    //           << d_q << "*" << s_q << "*" << N_q << "*" << p_t << "+" << d_c
+    //           << "*" << s_c << "*" << N_c << "*" << c << "/" <<
+    //           effectiveCohesion_safetyF  << "+" << s_g << "*"
+    //           << N_g << "*" << g_k << "*" << B << "/" << 2.0 << "=" << _qu
+    //           << "\n"
+    //           << std::endl;
+    return R_dToReturn;
 }
 
 void Lmuur::addSoilprofiles(Soilprofile Right, Soilprofile Left) {

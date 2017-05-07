@@ -7,7 +7,7 @@
 int main() {
     // Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr, double
     // gamma, double toe);
-    Lmuur Lm = Lmuur(26, 2, 3, 2, 20, 25, 0);
+    Lmuur Lm = Lmuur(25, 2, 3, 2, 20, 25, 0);
     std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
               << Lm.mOwnWeight.mPoE.y << std::endl;
     Soillayer R1 = Soillayer(0.0, 3.0, 16.0, 0.39, 15.0);
