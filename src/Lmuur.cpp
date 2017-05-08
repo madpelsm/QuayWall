@@ -379,8 +379,15 @@ void Lmuur::calculateAll() {
     calculateBoussinesqLoads();
     calculateResultingForce();
 
+    calculateExcentricity();
+
     makeUnityChecks();
 }
+
+void Lmuur::calculateExcentricity() {
+    mExcentricity = mResultingForce.mPoE.x - mxII;
+}
+
 void Lmuur::calculateActiveSoilPressureLeft() {}
 double Lmuur::squareSurface(double height, double width) {
     return height * width;
@@ -455,7 +462,8 @@ void Lmuur::writeToCSV() {
     file << "type,R_d,E_d,veiligheid\n";
     file << "Evewichtsdraagvermogen," << R_d << ","
          << mResultingForce.mForce.y * 100 << ","
-         << R_d / (100 * mResultingForce.mForce.y) << "\n";
+         << R_d / (100 * mResultingForce.mForce.y) << ",excentriciteit:,"
+         << mExcentricity << "\n";
     file << "Schuiven," << RH_d << "," << mResultingForce.mForce.x << ","
          << abs(RH_d / mResultingForce.mForce.x) << "\n";
 
@@ -474,7 +482,7 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
     // Safetyfactors on cohesion
     double c_d = mCohesion / effectiveCohesion_safetyF;
 
-    double B = mBz;
+    double B = mBz - 2 * mExcentricity;
     double L = 100;
     // invloedsfactoren
     double N_q = exp(M_PI * tan(phi_d)) * tan(M_PI / 4.0 + phi_d / 2.0) *

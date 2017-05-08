@@ -17,6 +17,7 @@ class Lmuur {
     double R_d = 0, RH_d = 0, E_stabiliserend = 0, E_destabiliserend = 0;
     // end unity check quantities
     double gamma_water = 9.81, mq = 30;
+    double mExcentricity = 0;
     double mCohesion = 2;  // kNm^2/m
     double mHm, mHv, mBl, mBm, mBr, mBz, mxI, mxII, myI, myII, mx, my, mAI,
         mAII, gamma, mA, mtoe, mxtoe, mytoe, mAtoe;
@@ -52,6 +53,7 @@ class Lmuur {
     void calculateActiveSoilPressureLeft();
     void calculateResultingForce();
     void calculateAll();
+    void calculateExcentricity();
     void writeToCSV();
     void makeUnityChecks();
     double calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
