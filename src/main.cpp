@@ -30,7 +30,7 @@ int main() {
 
     Lm.setSolidHeightDifference(21);
 
-    Lm.calculateAll();
+    Lm.calculateAll(0);
 
     std::cout << "kaaimuur met hoogte vanaf de voet: " << Lm.mHm
               << "[m] en dikte " << Lm.mBm << "[m]"
@@ -43,9 +43,8 @@ int main() {
               << ")\n and point of engagement (x,y): ("
               << Lm.mResultingForce.mPoE.x << "," << Lm.mResultingForce.mPoE.y
               << ")" << std::endl;
-    Lm.writeToCSV();
+    Lm.writeToCSV("karakteristieke berekening.csv");
 
-    std::cout << Lm.kastnerH << std::endl;
 
     return 0;
 }

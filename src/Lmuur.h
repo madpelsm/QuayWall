@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
 
 class Lmuur {
@@ -14,7 +15,7 @@ class Lmuur {
     double kastnerH = 0;
     // end of intermediate result storage
     // begin unityCheck quantities
-    double R_d = 0, RH_d = 0, E_stabiliserend = 0, E_destabiliserend = 0;
+    double R_d = 0, RH_d = 0, momentST = 0, momentDST = 0;
     // end unity check quantities
     double gamma_water = 9.81, mq = 30;
     double mExcentricity = 0;
@@ -22,6 +23,7 @@ class Lmuur {
     double mHm, mHv, mBl, mBm, mBr, mBz, mxI, mxII, myI, myII, mx, my, mAI,
         mAII, gamma, mA, mtoe, mxtoe, mytoe, mAtoe;
     double mForce, mSoilHeightDifference;
+    // FORCES
     ForceVector mOwnWeight;  // real weight, no buoyance effect
     ForceVector mBuoyantForce;
     ForceVector mlhsWaterPressure, mrhsWaterPressure;
@@ -30,6 +32,8 @@ class Lmuur {
     std::vector<ForceVector> mActiveSoilPressure;
     std::vector<ForceVector> mBoussinesqResultant;
     std::vector<ForceVector> mPassiveSoilPressure;
+
+    // SOILPROFILES
     Soilprofile rightProfile;
     Soilprofile leftProfile;
 
@@ -38,10 +42,13 @@ class Lmuur {
     ~Lmuur();
     void calculateProperties();
     void calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
-                                      double footwidth);
+                                      double footwidth, int safetyCase = 0);
+    // if 0, mPhiA, 1 -> mPhiB, 2-> mPhiC
     void calculateSoilWedgeWeight(Soilprofile& soilprofile, double base,
                                   double H, double offSet, double side);
     // side means: if it is on the left side of the wall -1, else 1
+    void calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
+                                      double footwidth, int safetyCase = 0);
     void calculateWaterPressures();
     void calculateBoussinesqLoads();  // for general purposes a class for this
                                       // load should handle this itself, but
@@ -50,11 +57,11 @@ class Lmuur {
                                       // result right away.
     void calculateBuoyancy();
     void setSolidHeightDifference(double height);
-    void calculateActiveSoilPressureLeft();
     void calculateResultingForce();
-    void calculateAll();
+    void calculateTiltMomentAtFoot(int safeteCase = 0);
+    void calculateAll(int safetyCase = 0);
     void calculateExcentricity();
-    void writeToCSV();
+    void writeToCSV(std::string file_name);
     void makeUnityChecks();
     double calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
                         double effectiveCohesion_safetyF);

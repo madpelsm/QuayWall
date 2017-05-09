@@ -33,10 +33,11 @@ void Lmuur::calculateProperties() {
     // calculate weight force
     mForce = gamma * mA;
     mOwnWeight = ForceVector(glm::vec2(0, mForce), glm::vec2(mx, my));
+    std::cout << "Wall properties calculated!" << std::endl;
 }
 
 void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
-                                         double footwidth) {
+                                         double footwidth, int safetyCase) {
     double correctionHeight = 0;
     double forceDirectionCorrection = 1;
     double wallBorder = mBm;
@@ -45,10 +46,14 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
         correctionHeight = mSoilHeightDifference;
         wallBorder = 0;
     }
+    if (safetyCase > soilprofile.mSoillayers[0].mSafetyPhi.size()) {
+        abort();
+    }
 
     double phi_d = M_PI / 2.0;
     for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
-        phi_d = std::min(phi_d, soilprofile.mSoillayers[i].mPhiA);
+        phi_d =
+            std::min(phi_d, soilprofile.mSoillayers[i].mSafetyPhi[safetyCase]);
     }
 
     ForceVector Qa;
@@ -59,7 +64,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
     for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
         // dependencies for lambda_a
         psi = phi_d * (2.0 / 3.0);
-        alpha = M_PI / 4.0 - phi / 2.0;
+        alpha = M_PI / 4.0 - phi_d / 2.0;
         // dependencies for Qa
 
         // h = diepte tov maaiveld (pos = naar beneden)
@@ -74,7 +79,11 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 // helling van oppervlak is helling van muur
                 // (alpha=0,psi=2/3phi)
                 //
-                lambda_a = soilprofile.getLambda_a(phi_d, 0, psi, 0);
+                psi = (2.0 / 3.0) *
+                      soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
+                lambda_a = soilprofile.getLambda_a(
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
+                    0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, alpha);
                 // correctie voor de juiste richting van de vector te bekomen
@@ -88,15 +97,19 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 // de yCoordinaat werd berekent relatief tov de bovenkant van de
                 // grondlaag
                 Qa.mPoE.x = wallBorder;
-                Qa.mPoE.y += h;
+                Qa.mPoE.y += h + correctionHeight;
                 mActiveSoilPressure.push_back(Qa);
             } else {
                 // glijlijn ligt boven de onderkant van de beschouwde
                 // grondlaag
-                // bovenkant van de grondlaag ligt nog bove de glijlijn
+                // bovenkant van de grondlaag ligt nog boven de glijlijn
                 lower = yTemp;
                 alpha = 0;
-                lambda_a = soilprofile.getLambda_a(phi_d, alpha, psi, 0);
+                psi = (2.0 / 3.0) *
+                      soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
+                lambda_a = soilprofile.getLambda_a(
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
+                    0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, alpha);
                 Qa.mForce.y = Qa.mForce.x * sin(alpha + psi);
@@ -109,7 +122,10 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
                                  mHm - correctionHeight);
                 alpha = M_PI / 4.0 - phi_d / 2.0;
-                lambda_a = soilprofile.getLambda_a(phi_d, alpha, phi_d, 0);
+                psi = soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
+                lambda_a = soilprofile.getLambda_a(
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
+                    0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i],
                                        yTemp, lower, yTemp);
                 Qa.mForce.y = Qa.mForce.x * sin(alpha + psi);
@@ -117,11 +133,14 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                     -forceDirectionCorrection * Qa.mForce.x * cos(alpha + psi);
                 // Qa.mPoE.y is nu nog de ycoordinaat tov de bovenkant van de
                 // laag
-                Qa.mPoE.x = wallBorder +
-                            forceDirectionCorrection * Qa.mPoE.y /
-                                tan(M_PI / 4.0 + phi_d / 2.0);
+                Qa.mPoE.x =
+                    wallBorder +
+                    forceDirectionCorrection * Qa.mPoE.y /
+                        tan(M_PI / 4.0 +
+                            soilprofile.mSoillayers[i].mSafetyPhi[safetyCase] /
+                                2.0);
                 // naar globaal assenstelsel
-                Qa.mPoE.y += yTemp;
+                Qa.mPoE.y += yTemp + correctionHeight;
                 mActiveSoilPressure.push_back(Qa);
             }
         } else {
@@ -130,16 +149,22 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
             h = soilprofile.mSoillayers[i].mUpperbounds;
             if (h < lower) {
                 alpha = M_PI / 4.0 - phi_d / 2.0;
-                psi = phi_d;
-                lambda_a = soilprofile.getLambda_a(phi_d, alpha, phi_d, 0);
+                psi = soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
+                lambda_a = soilprofile.getLambda_a(
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
+                    0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, alpha);
-                Qa.mForce.y = Qa.mForce.x * abs(sin(alpha + psi));
+                Qa.mForce.y =
+                    Qa.mForce.x * abs(sin(alpha + psi)) + correctionHeight;
                 Qa.mForce.x = -forceDirectionCorrection * Qa.mForce.x *
                               abs(cos(alpha + psi));
-                Qa.mPoE.x = wallBorder +
-                            forceDirectionCorrection * Qa.mPoE.y /
-                                tan(M_PI / 4.0 + phi_d / 2.0);
+                Qa.mPoE.x =
+                    wallBorder +
+                    forceDirectionCorrection * Qa.mPoE.y /
+                        tan(M_PI / 4.0 +
+                            soilprofile.mSoillayers[i].mSafetyPhi[safetyCase] /
+                                2.0);
                 Qa.mPoE.y += h;
                 mActiveSoilPressure.push_back(Qa);
             }
@@ -159,14 +184,18 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                              mHm + mHv - correctionHeight);
             if (lower > mHm - correctionHeight) {
                 alpha = 0;
-                lambda_a = soilprofile.getLambda_a(phi_d, 0, psi, 0);
+                psi = (2.0 / 3.0) *
+                      soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
+                lambda_a = soilprofile.getLambda_a(
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
+                    0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, 0);
                 Qa.mForce.y = Qa.mForce.x * sin(alpha + psi);
                 Qa.mForce.x =
                     -forceDirectionCorrection * Qa.mForce.x * cos(alpha + psi);
                 Qa.mPoE.x = wallBorder + footwidth * forceDirectionCorrection;
-                Qa.mPoE.y += h;
+                Qa.mPoE.y += h + correctionHeight;
                 mActiveSoilPressure.push_back(Qa);
             }
         }
@@ -268,6 +297,56 @@ void Lmuur::calculateSoilWedgeWeight(Soilprofile& soilprofile, double base,
     }
 }
 
+void Lmuur::calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
+                                         double footwidth, int safetyCase) {
+    double correctionHeight = 0;
+    double forceDirectionCorrection = 1;
+    double wallBorder = mBm;
+    if (side != 1) {
+        // if side !=1 thus -1, we are on the negative side of the x axis. i.e.
+        // on the left side of the wall
+        forceDirectionCorrection = -1;
+        correctionHeight = mSoilHeightDifference;
+        wallBorder = 0;
+    }
+
+    double phi_d = M_PI / 2.0;
+    for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
+        phi_d =
+            std::min(phi_d, soilprofile.mSoillayers[i].mSafetyPhi[safetyCase]);
+    }
+    phi_d *= -1;
+    double psi = (3.0 / 2.0) * phi_d;
+    ForceVector Qp;
+    double lambda_p = 1, alpha = 0;
+    for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
+        double h = std::max(soilprofile.mSoillayers[i].mUpperbounds,
+                            mHm - correctionHeight);
+        double lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
+                                mHm - correctionHeight);
+        if (soilprofile.mSoillayers[i].mUpperbounds <
+                (mHm - correctionHeight + mHv) &&
+            soilprofile.mSoillayers[i].mLowerBounds > mHm - correctionHeight) {
+            lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
+                             mHm + mHv - correctionHeight);
+            if (lower > mHm - correctionHeight) {
+                alpha = 0;
+                psi = -(2.0 / 3.0) *
+                      soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
+                Qp = soilprofile.getQa(lambda_p, soilprofile.mSoillayers[i], h,
+                                       lower, h, 0);
+                Qp.mForce.y = Qp.mForce.x * sin(alpha + psi);
+                Qp.mForce.x =
+                    -forceDirectionCorrection * Qp.mForce.x * cos(alpha + psi);
+                Qp.mPoE.x = wallBorder + footwidth * forceDirectionCorrection;
+                Qp.mPoE.y += h;
+                mPassiveSoilPressure.push_back(Qp);
+            }
+        }
+    }
+    std::cout << "Passive soil pressure calculation completed!" << std::endl;
+}
+
 void Lmuur::calculateWaterPressures() {
     double waterHeightLeft = mSoilHeightDifference + leftProfile.waterHeight;
     double waterHeightRight = rightProfile.waterHeight;
@@ -281,6 +360,7 @@ void Lmuur::calculateWaterPressures() {
     mlhsWaterPressure =
         ForceVector(glm::vec2(gamma_water * kastnerHcorr * d * 0.5, 0),
                     glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * d));
+    std::cout << "Water pressures calculatio completed!" << std::endl;
 }
 
 void Lmuur::calculateBoussinesqLoads() {
@@ -291,6 +371,7 @@ void Lmuur::calculateBoussinesqLoads() {
     mBoussinesqResultant.push_back(
         ForceVector(glm::vec2(-0.5 * mq * mHv, mq * mHv / M_PI),
                     glm::vec2(mBm + mBr, mHm + mHv * 0.5)));
+    std::cout << "Boussinesq calculation completed!" << std::endl;
 }
 
 void Lmuur::calculateBuoyancy() {
@@ -301,6 +382,7 @@ void Lmuur::calculateBuoyancy() {
         glm::vec2(0, -((newWetArea + mAII) * gamma_water)),
         glm::vec2((newWetArea * mxI + mAII * mxII) / (newWetArea + mAII),
                   (newWetArea * y1 + mAII * myII) / (newWetArea + mAII)));
+    std::cout << "Buoyancy calculation completed!" << std::endl;
 }
 
 void Lmuur::setSolidHeightDifference(double height) {
@@ -332,7 +414,7 @@ void Lmuur::calculateResultingForce() {
             mBoussinesqResultant[i].mForce.x * mBoussinesqResultant[i].mPoE.y;
     }
     // Passive not yet implemented
-    for (size_t i = 0; i < mPassiveSoilPressure.size() && false; ++i) {
+    for (size_t i = 0; i < mPassiveSoilPressure.size(); ++i) {
         sumFx += mPassiveSoilPressure[i].mForce.x;
         sumFy += mPassiveSoilPressure[i].mForce.y;
         mOy +=
@@ -365,12 +447,102 @@ void Lmuur::calculateResultingForce() {
 
     mResultingForce = ForceVector(glm::vec2(sumFx, sumFy),
                                   glm::vec2(mOy / sumFy, mOx / sumFx));
+    std::cout << "resulting force calculation completed." << std::endl;
 }
 
-void Lmuur::calculateAll() {
+void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
+    double distanceX = 0;
+    double distanceY = 0;
+    double momenti = 0;
+    double stSafety = 1, dstSafety = 1;
+    for (size_t i = 0; i < mSoilWedgeWeight.size(); ++i) {
+        distanceX = mSoilWedgeWeight[i].mPoE.x - mBl;
+        distanceY = mSoilWedgeWeight[i].mPoE.y - mHv - mHm;
+        momenti = distanceX * mSoilWedgeWeight[i].mForce.y -
+                  distanceY * mSoilWedgeWeight[i].mForce.x;
+        if (momenti >= 0) {
+            momentST += stSafety * momenti;
+        } else {
+            momentDST += dstSafety * momenti;
+        }
+    }
+    for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
+        distanceX = mActiveSoilPressure[i].mPoE.x - mBl;
+        distanceY = mActiveSoilPressure[i].mPoE.y - mHv - mHm;
+        momenti = distanceX * mActiveSoilPressure[i].mForce.y -
+                  distanceY * mActiveSoilPressure[i].mForce.x;
+        if (momenti >= 0) {
+            momentST += stSafety * momenti;
+        } else {
+            momentDST += dstSafety * momenti;
+        }
+    }
+    for (size_t i = 0; i < mPassiveSoilPressure.size(); ++i) {
+        distanceX = mPassiveSoilPressure[i].mPoE.x - mBl;
+        distanceY = mPassiveSoilPressure[i].mPoE.y - mHv - mHm;
+        momenti = distanceX * mPassiveSoilPressure[i].mForce.y -
+                  distanceY * mPassiveSoilPressure[i].mForce.x;
+        if (momenti >= 0) {
+            momentST += stSafety * momenti;
+        } else {
+            momentDST += dstSafety * momenti;
+        }
+    }
+    for (size_t i = 0; i < mBoussinesqResultant.size(); ++i) {
+        distanceX = mBoussinesqResultant[i].mPoE.x - mBl;
+        distanceY = mBoussinesqResultant[i].mPoE.y - mHv - mHm;
+        momenti = distanceX * mBoussinesqResultant[i].mForce.y -
+                  distanceY * mBoussinesqResultant[i].mForce.x;
+        if (momenti >= 0) {
+            momentST += stSafety * momenti;
+        } else {
+            momentDST += dstSafety * momenti;
+        }
+    }
+    distanceX = mOwnWeight.mPoE.x - mBl;
+    distanceY = mOwnWeight.mPoE.y - mHv - mHm;
+    momenti = distanceX * mOwnWeight.mForce.y - distanceY * mOwnWeight.mForce.x;
+    if (momenti >= 0) {
+        momentST += stSafety * momenti;
+    } else {
+        momentDST += dstSafety * momenti;
+    }
+    distanceX = mBuoyantForce.mPoE.x - mBl;
+    distanceY = mBuoyantForce.mPoE.y - mHv - mHm;
+    momenti =
+        distanceX * mBuoyantForce.mForce.y - distanceY * mBuoyantForce.mForce.x;
+    if (momenti >= 0) {
+        momentST += stSafety * momenti;
+    } else {
+        momentDST += dstSafety * momenti;
+    }
+    distanceX = mlhsWaterPressure.mPoE.x - mBl;
+    distanceY = mlhsWaterPressure.mPoE.y - mHv - mHm;
+    momenti = distanceX * mlhsWaterPressure.mForce.y -
+              distanceY * mlhsWaterPressure.mForce.x;
+    if (momenti >= 0) {
+        momentST += stSafety * momenti;
+    } else {
+        momentDST += dstSafety * momenti;
+    }
+    distanceX = mrhsWaterPressure.mPoE.x - mBl;
+    distanceY = mrhsWaterPressure.mPoE.y - mHv - mHm;
+    momenti = distanceX * mrhsWaterPressure.mForce.y -
+              distanceY * mrhsWaterPressure.mForce.x;
+    if (momenti >= 0) {
+        momentST += stSafety * momenti;
+    } else {
+        momentDST += dstSafety * momenti;
+    }
+    std::cout << "Tilt calculation completed!" << std::endl;
+}
+
+void Lmuur::calculateAll(int safetyCase) {
+    std::cout << "starting complete calculation" << std::endl;
     calculateProperties();
-    calculateActiveSoilPressures(rightProfile, 1, mBr);
-    calculateActiveSoilPressures(leftProfile, -1, mBl);
+    calculateActiveSoilPressures(rightProfile, 1, mBr, safetyCase);
+    calculateActiveSoilPressures(leftProfile, -1, mBl, safetyCase);
+    calculatePassiveSoilPressure(leftProfile, -1, mBl, safetyCase);
     calculateSoilWedgeWeight(rightProfile, mBr, mHm, mBm, 1);
     calculateSoilWedgeWeight(leftProfile, mBl, mHm - mSoilHeightDifference, 0,
                              -1);
@@ -380,6 +552,7 @@ void Lmuur::calculateAll() {
     calculateResultingForce();
 
     calculateExcentricity();
+    calculateTiltMomentAtFoot(safetyCase);
 
     makeUnityChecks();
 }
@@ -388,7 +561,6 @@ void Lmuur::calculateExcentricity() {
     mExcentricity = mResultingForce.mPoE.x - mxII;
 }
 
-void Lmuur::calculateActiveSoilPressureLeft() {}
 double Lmuur::squareSurface(double height, double width) {
     return height * width;
 }
@@ -397,78 +569,99 @@ double Lmuur::triangleSurface(double height, double base) {
     return height * base * 0.5;
 }
 
-void Lmuur::writeToCSV() {
+void Lmuur::writeToCSV(std::string file_name) {
     std::ofstream file;
-    file.open("output.csv");
-    file << "L vormige kaaimuur\n";
-    file << "Eigenschappen L-wand,[m],,[m]\n";
-    file << "Hoogte vanaf de voet," << mHm << ",Breedte verticale wand," << mBm
-         << "\n";
-    file << "Breedte linker voet," << mBl << ",Breedte rechter voet," << mBr
-         << "\n";
-    file << "Breedte verticale wand," << mBm << ",Dikte funderingszool," << mHv
-         << "\n";
-    file << "Opmerkingen\n";
-    file << "Het assenstelsel gaat met positieve richting naar "
-            "beneden\nDeze y as valt samen met de linkerzijde van de verticale "
-            "wand\nDe x as "
-            "gaat positief naar rechts\n samenvallend met het horizontale "
-            "maaiveld.\n\n";
-    file << "Aangrijpende krachten. \n";
-    file << "Kracht,Fx[kN],Fy[kN],x[m],y[m]\n";
-    file << "Eigengewicht.\n";
-    file << "Eigen," << mOwnWeight.mForce.x << "," << mOwnWeight.mForce.y << ","
-         << mOwnWeight.mPoE.x << "," << mOwnWeight.mPoE.y << "\n";
-
-    file << "Opwaartse stuwkracht van het beton.\n";
-    file << "Archimedes," << mBuoyantForce.mForce.x << ","
-         << mBuoyantForce.mForce.y << "," << mBuoyantForce.mPoE.x << ","
-         << mBuoyantForce.mPoE.y << "\n";
-
-    file << "Waterdrukken mbv Kastner.\n";
-    file << "Rechterkant," << mrhsWaterPressure.mForce.x << ","
-         << mrhsWaterPressure.mForce.y << "," << mrhsWaterPressure.mPoE.x << ","
-         << mrhsWaterPressure.mPoE.y << "\n";
-    file << "Linkerkant," << mlhsWaterPressure.mForce.x << ","
-         << mlhsWaterPressure.mForce.y << "," << mlhsWaterPressure.mPoE.x << ","
-         << mlhsWaterPressure.mPoE.y << "\n";
-    file << "Actieve gronddrukken.\n";
-    for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
-        file << "Qa" << i << "," << mActiveSoilPressure[i].mForce.x << ","
-             << mActiveSoilPressure[i].mForce.y << ","
-             << mActiveSoilPressure[i].mPoE.x << ","
-             << mActiveSoilPressure[i].mPoE.y << "\n";
-    }
-    file << "GrondGewicht\n";
-    for (size_t i = 0; i < mSoilWedgeWeight.size(); ++i) {
-        file << "G" << i << "," << mSoilWedgeWeight[i].mForce.x << ","
-             << mSoilWedgeWeight[i].mForce.y << ","
-             << mSoilWedgeWeight[i].mPoE.x << "," << mSoilWedgeWeight[i].mPoE.y
+    file.open(file_name);
+    if (file.is_open()) {
+        file << "L vormige kaaimuur\n";
+        file << "Eigenschappen L-wand,[m],,[m]\n";
+        file << "Hoogte vanaf de voet," << mHm << ",Breedte verticale wand,"
+             << mBm << "\n";
+        file << "Breedte linker voet," << mBl << ",Breedte rechter voet," << mBr
              << "\n";
-    }
-    file << "Boussinesq.\n";
-    for (size_t i = 0; i < mBoussinesqResultant.size(); ++i) {
-        file << "F" << i << "," << mBoussinesqResultant[i].mForce.x << ","
-             << mBoussinesqResultant[i].mForce.y << ","
-             << mBoussinesqResultant[i].mPoE.x << ","
-             << mBoussinesqResultant[i].mPoE.y << "\n";
-    }
-    file << "\n";
-    file << "Resultante\n";
-    file << "Fk," << mResultingForce.mForce.x << "," << mResultingForce.mForce.y
-         << "," << mResultingForce.mPoE.x << "," << mResultingForce.mPoE.y
-         << "\n";
-    file << "UNITY CHECKS\n";
-    file << "type,R_d,E_d,veiligheid\n";
-    file << "Evewichtsdraagvermogen," << R_d << ","
-         << mResultingForce.mForce.y * 100 << ","
-         << R_d / (100 * mResultingForce.mForce.y) << ",excentriciteit:,"
-         << mExcentricity << "\n";
-    file << "Schuiven," << RH_d << "," << mResultingForce.mForce.x << ","
-         << abs(RH_d / mResultingForce.mForce.x) << "\n";
+        file << "Breedte verticale wand," << mBm << ",Dikte funderingszool,"
+             << mHv << "\n";
+        file << "Opmerkingen\n";
+        file << "Het assenstelsel gaat met positieve richting naar "
+                "beneden\nDeze y as valt samen met de linkerzijde van de "
+                "verticale "
+                "wand\nDe x as "
+                "gaat positief naar rechts\n samenvallend met het horizontale "
+                "maaiveld.\n\n";
+        file << "Aangrijpende krachten. \n";
+        file << "Kracht,Fx[kN],Fy[kN],x[m],y[m]\n";
+        file << "Eigengewicht.\n";
+        file << "Eigen," << mOwnWeight.mForce.x << "," << mOwnWeight.mForce.y
+             << "," << mOwnWeight.mPoE.x << "," << mOwnWeight.mPoE.y << "\n";
 
-    file.close();
-    std::cout << "Write complete!" << std::endl;
+        file << "Opwaartse stuwkracht van het beton.\n";
+        file << "Archimedes," << mBuoyantForce.mForce.x << ","
+             << mBuoyantForce.mForce.y << "," << mBuoyantForce.mPoE.x << ","
+             << mBuoyantForce.mPoE.y << "\n";
+
+        file << "Waterdrukken mbv Kastner.\n";
+        file << "Rechterkant," << mrhsWaterPressure.mForce.x << ","
+             << mrhsWaterPressure.mForce.y << "," << mrhsWaterPressure.mPoE.x
+             << "," << mrhsWaterPressure.mPoE.y << "\n";
+        file << "Linkerkant," << mlhsWaterPressure.mForce.x << ","
+             << mlhsWaterPressure.mForce.y << "," << mlhsWaterPressure.mPoE.x
+             << "," << mlhsWaterPressure.mPoE.y << "\n";
+        file << "Actieve gronddrukken.\n";
+        for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
+            file << "Qa" << i << "," << mActiveSoilPressure[i].mForce.x << ","
+                 << mActiveSoilPressure[i].mForce.y << ","
+                 << mActiveSoilPressure[i].mPoE.x << ","
+                 << mActiveSoilPressure[i].mPoE.y << "\n";
+        }
+        file << "Passieve gronddrukken.\n";
+        for (size_t i = 0; i < mPassiveSoilPressure.size(); ++i) {
+            file << "Qa" << i << "," << mPassiveSoilPressure[i].mForce.x << ","
+                 << mPassiveSoilPressure[i].mForce.y << ","
+                 << mPassiveSoilPressure[i].mPoE.x << ","
+                 << mPassiveSoilPressure[i].mPoE.y << "\n";
+        }
+        file << "GrondGewicht\n";
+        for (size_t i = 0; i < mSoilWedgeWeight.size(); ++i) {
+            file << "G" << i << "," << mSoilWedgeWeight[i].mForce.x << ","
+                 << mSoilWedgeWeight[i].mForce.y << ","
+                 << mSoilWedgeWeight[i].mPoE.x << ","
+                 << mSoilWedgeWeight[i].mPoE.y << "\n";
+        }
+        file << "Boussinesq.\n";
+        for (size_t i = 0; i < mBoussinesqResultant.size(); ++i) {
+            file << "F" << i << "," << mBoussinesqResultant[i].mForce.x << ","
+                 << mBoussinesqResultant[i].mForce.y << ","
+                 << mBoussinesqResultant[i].mPoE.x << ","
+                 << mBoussinesqResultant[i].mPoE.y << "\n";
+        }
+        file << "\n";
+        file << "Resultante\n";
+        file << "Fk," << mResultingForce.mForce.x << ","
+             << mResultingForce.mForce.y << "," << mResultingForce.mPoE.x << ","
+             << mResultingForce.mPoE.y << "\n";
+        file << "\nUNITY CHECKS\n";
+        file << "type,R_d,E_d,veiligheid\n";
+        file << "Evewichtsdraagvermogen," << R_d << ","
+             << mResultingForce.mForce.y * 100 << ","
+             << R_d / (100 * mResultingForce.mForce.y) << ",excentriciteit:,"
+             << mExcentricity << "\n";
+        file << "Schuiven," << RH_d << "," << mResultingForce.mForce.x << ","
+             << abs(RH_d / mResultingForce.mForce.x) << "\n";
+        file << "Kantelen," << momentST << "," << momentDST << ","
+             << (momentDST != 0 ? (momentST / std::abs(momentDST)) : 0)
+             << ",moment in kNm,\n";
+        if (!file) {
+            std::cout << "Write failed." << std::endl;
+        }
+        file.close();
+        if (file) {
+            std::cout << "Write complete!" << std::endl;
+        } else {
+            std::cout << "Write failed." << std::endl;
+        }
+    } else {
+        std::cout << "Write failed." << std::endl;
+    }
 }
 
 void Lmuur::makeUnityChecks() {
@@ -529,10 +722,12 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
         B * L * (d_q * s_q * N_q * p_t * i_q + d_c * s_c * N_c * i_c * c_d +
                  s_g * N_g * g_k * i_g * B / 2.0);
     // std::cout << "q_u = d_q*s_q*N_q*p_t+d_c*s_c*N_c*c+s_g*N_g*g_k*B/2\n"
-    //           << d_q << "*" << s_q << "*" << N_q << "*" << p_t << "+" << d_c
+    //           << d_q << "*" << s_q << "*" << N_q << "*" << p_t << "+" <<
+    //           d_c
     //           << "*" << s_c << "*" << N_c << "*" << c << "/" <<
     //           effectiveCohesion_safetyF  << "+" << s_g << "*"
-    //           << N_g << "*" << g_k << "*" << B << "/" << 2.0 << "=" << _qu
+    //           << N_g << "*" << g_k << "*" << B << "/" << 2.0 << "=" <<
+    //           _qu
     //           << "\n"
     //           << std::endl;
     return R_dToReturn;
@@ -541,6 +736,7 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
 void Lmuur::addSoilprofiles(Soilprofile Right, Soilprofile Left) {
     leftProfile = Left;
     rightProfile = Right;
+    std::cout << "soil profiles added" << std::endl;
 }
 
 Lmuur::~Lmuur() {}

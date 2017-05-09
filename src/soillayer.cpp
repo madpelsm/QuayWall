@@ -23,6 +23,10 @@ void Soillayer::calculateSafetyValues() {
     mPhiA = atan(tan(mphi) / 1.25);
     mPhiB = M_PI * mphi / 180.0;
     mPhiC = mPhiA;
+    mSafetyPhi.reserve(3);
+    mSafetyPhi.push_back(mPhiA);
+    mSafetyPhi.push_back(mPhiB);
+    mSafetyPhi.push_back(mPhiC);
 }
 
 Soillayer::~Soillayer() {}
