@@ -45,7 +45,8 @@ class Lmuur {
                                       double footwidth, int safetyCase = 0);
     // if 0, mPhiA, 1 -> mPhiB, 2-> mPhiC
     void calculateSoilWedgeWeight(Soilprofile& soilprofile, double base,
-                                  double H, double offSet, double side);
+                                  double H, double offSet, double side,
+                                  int safetyCase = 0);
     // side means: if it is on the left side of the wall -1, else 1
     void calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
                                       double footwidth, int safetyCase = 0);
@@ -62,7 +63,8 @@ class Lmuur {
     void calculateAll(int safetyCase = 0);
     void calculateExcentricity();
     void writeToCSV(std::string file_name);
-    void makeUnityChecks();
+    void makeUnityChecks(int safetyCase = 0);
+    double getPhiAtConstructionFoot(int safetyCase = 0);
     double calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
                         double effectiveCohesion_safetyF);
     void addSoilprofiles(Soilprofile Right, Soilprofile Left);

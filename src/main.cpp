@@ -9,7 +9,7 @@ int main() {
     // gamma, double toe);
     // mHm, mHv, mBl,mBm,mBr,gamma,toe
     double verticalHeight = 25, footheight = 3, leftWidth = 2, middleWidth = 2,
-           rightWidth = 20, gamma = 25, toe = 0;
+           rightWidth = 20, gamma = 25, toe = 1;
     Lmuur Lm = Lmuur(verticalHeight, footheight, leftWidth, middleWidth,
                      rightWidth, gamma, toe);
     std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
@@ -44,7 +44,6 @@ int main() {
               << Lm.mResultingForce.mPoE.x << "," << Lm.mResultingForce.mPoE.y
               << ")" << std::endl;
     Lm.writeToCSV("karakteristieke berekening.csv");
-
 
     return 0;
 }

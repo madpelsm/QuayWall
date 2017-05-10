@@ -41,6 +41,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
     double correctionHeight = 0;
     double forceDirectionCorrection = 1;
     double wallBorder = mBm;
+    double toeHeight = mtoe;
     if (side != 1) {
         forceDirectionCorrection = -1;
         correctionHeight = mSoilHeightDifference;
@@ -178,10 +179,10 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
         double lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
                                 mHm - correctionHeight);
         if (soilprofile.mSoillayers[i].mUpperbounds <
-                (mHm - correctionHeight + mHv) &&
+                (mHm - correctionHeight + mHv + toeHeight) &&
             soilprofile.mSoillayers[i].mLowerBounds > mHm - correctionHeight) {
             lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
-                             mHm + mHv - correctionHeight);
+                             mHm + mHv - correctionHeight + toeHeight);
             if (lower > mHm - correctionHeight) {
                 alpha = 0;
                 psi = (2.0 / 3.0) *
@@ -203,12 +204,14 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
 }
 
 void Lmuur::calculateSoilWedgeWeight(Soilprofile& soilprofile, double base,
-                                     double H, double offSet, double side) {
+                                     double H, double offSet, double side,
+                                     int safetyCase) {
     // voor de rechterkant: offset =mBm, base= mBr, H= mHm
     // voor de linkerkant: offset =0, base = mBl, H=mHm-grondhoogteverschil
     double phi_d = M_PI / 2.0;
     for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
-        phi_d = std::min(phi_d, soilprofile.mSoillayers[i].mPhiA);
+        phi_d =
+            std::min(phi_d, soilprofile.mSoillayers[i].mSafetyPhi[safetyCase]);
     }
     double tanphi_d = tan(M_PI / 4.0 + phi_d / 2.0);
     double triangleHeight = base * tanphi_d;
@@ -325,10 +328,10 @@ void Lmuur::calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
         double lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
                                 mHm - correctionHeight);
         if (soilprofile.mSoillayers[i].mUpperbounds <
-                (mHm - correctionHeight + mHv) &&
+                (mHm - correctionHeight + mHv + mtoe) &&
             soilprofile.mSoillayers[i].mLowerBounds > mHm - correctionHeight) {
             lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
-                             mHm + mHv - correctionHeight);
+                             mHm + mHv + mtoe - correctionHeight);
             if (lower > mHm - correctionHeight) {
                 alpha = 0;
                 psi = -(2.0 / 3.0) *
@@ -358,8 +361,8 @@ void Lmuur::calculateWaterPressures() {
         glm::vec2(-gamma_water * kastnerHcorr * (mHm + mHv) * 0.5, 0),
         glm::vec2(mBm, (2.0 / 3.0) * (mHm + mHv)));
     mlhsWaterPressure =
-        ForceVector(glm::vec2(gamma_water * kastnerHcorr * d * 0.5, 0),
-                    glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * d));
+        ForceVector(glm::vec2(gamma_water * kastnerHcorr * (mtoe + d) * 0.5, 0),
+                    glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * (d + mtoe)));
     std::cout << "Water pressures calculatio completed!" << std::endl;
 }
 
@@ -378,10 +381,12 @@ void Lmuur::calculateBuoyancy() {
     double wetHeight = mHm - rightProfile.waterHeight;
     double newWetArea = mAI * (wetHeight / mHm);
     double y1 = rightProfile.waterHeight + wetHeight * 0.5;
-    mBuoyantForce = ForceVector(
-        glm::vec2(0, -((newWetArea + mAII) * gamma_water)),
-        glm::vec2((newWetArea * mxI + mAII * mxII) / (newWetArea + mAII),
-                  (newWetArea * y1 + mAII * myII) / (newWetArea + mAII)));
+    mBuoyantForce =
+        ForceVector(glm::vec2(0, -((newWetArea + mAII + mAtoe) * gamma_water)),
+                    glm::vec2((newWetArea * mxI + mAII * mxII + mxtoe * mAtoe) /
+                                  (newWetArea + mAII + mAtoe),
+                              (newWetArea * y1 + mAII * myII + mAtoe * mytoe) /
+                                  (newWetArea + mAII + mAtoe)));
     std::cout << "Buoyancy calculation completed!" << std::endl;
 }
 
@@ -552,9 +557,8 @@ void Lmuur::calculateAll(int safetyCase) {
     calculateResultingForce();
 
     calculateExcentricity();
-    calculateTiltMomentAtFoot(safetyCase);
 
-    makeUnityChecks();
+    makeUnityChecks(safetyCase);
 }
 
 void Lmuur::calculateExcentricity() {
@@ -581,6 +585,7 @@ void Lmuur::writeToCSV(std::string file_name) {
              << "\n";
         file << "Breedte verticale wand," << mBm << ",Dikte funderingszool,"
              << mHv << "\n";
+        file << "Afmeting dextrateen:," << mtoe << "\n";
         file << "Opmerkingen\n";
         file << "Het assenstelsel gaat met positieve richting naar "
                 "beneden\nDeze y as valt samen met de linkerzijde van de "
@@ -664,10 +669,23 @@ void Lmuur::writeToCSV(std::string file_name) {
     }
 }
 
-void Lmuur::makeUnityChecks() {
-    R_d = calculateR_d(leftProfile.mSoillayers[0].mPhiA, leftProfile,
-                       mHm + mHv - mSoilHeightDifference, 1);
-    RH_d = mResultingForce.mForce.y * tan(leftProfile.mSoillayers[0].mPhiA);
+void Lmuur::makeUnityChecks(int safetyCase) {
+    double phi_d = getPhiAtConstructionFoot(safetyCase);
+    R_d =
+        calculateR_d(phi_d, leftProfile, mHm + mHv - mSoilHeightDifference, 1);
+    RH_d = mResultingForce.mForce.y * tan(phi_d);
+
+    calculateTiltMomentAtFoot(safetyCase);
+}
+
+double Lmuur::getPhiAtConstructionFoot(int safetyCase) {
+    // since left and right have to be compatible left or right doesnt matter
+    double phi_d = rightProfile.mSoillayers[0].mSafetyPhi[0];
+    for (size_t i = 0; i < rightProfile.mSoillayers.size(); ++i) {
+        if (rightProfile.mSoillayers[i].mUpperbounds <= (mHm + mHv) &&
+            rightProfile.mSoillayers[i].mLowerBounds > (mHm + mHv))
+            return rightProfile.mSoillayers[i].mSafetyPhi[safetyCase];
+    }
 }
 
 double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
