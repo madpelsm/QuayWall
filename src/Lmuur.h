@@ -27,7 +27,8 @@ class Lmuur {
     ForceVector mOwnWeight;  // real weight, no buoyance effect
     ForceVector mBuoyantForce;
     ForceVector mlhsWaterPressure, mrhsWaterPressure;
-    ForceVector mResultingForce;
+    ForceVector mResultingR_d;
+    ForceVector mResultingR_dSchuiven;
     std::vector<ForceVector> mSoilWedgeWeight;  // effective weight
     std::vector<ForceVector> mActiveSoilPressure;
     std::vector<ForceVector> mBoussinesqResultant;
@@ -37,9 +38,15 @@ class Lmuur {
     Soilprofile rightProfile;
     Soilprofile leftProfile;
 
+    // SAFETY FACTORS
+    std::vector<double> mSafetyGSup = {1.1, 1.35, 1};
+    std::vector<double> mSafetyGInf = {0.9, 1, 1};
+    std::vector<double> mSafetyQ = {1.5, 1.5, 1.3, 0};
+
     Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr,
           double gamma, double toe = 0);
     ~Lmuur();
+    void clearForces();
     void calculateProperties();
     void calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                                       double footwidth, int safetyCase = 0);
@@ -58,7 +65,13 @@ class Lmuur {
                                       // result right away.
     void calculateBuoyancy();
     void setSolidHeightDifference(double height);
-    void calculateResultingForce();
+    bool isBeneficial(ForceVector& _forcevector, int _failuremode,
+                      int _safetycase);
+    // failure mode 0: grondbreuk(evenwichtsdraagvermogen)
+    // failure mode 1: schuiven
+    ForceVector calculateResultingForce(int failureMode, int safetyCase = 0);
+    // directions: y = 1, x=2 (negative for oposite direction)
+
     void calculateTiltMomentAtFoot(int safeteCase = 0);
     void calculateAll(int safetyCase = 0);
     void calculateExcentricity();

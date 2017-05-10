@@ -8,8 +8,8 @@ int main() {
     // Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr, double
     // gamma, double toe);
     // mHm, mHv, mBl,mBm,mBr,gamma,toe
-    double verticalHeight = 25, footheight = 3, leftWidth = 2, middleWidth = 2,
-           rightWidth = 20, gamma = 25, toe = 1;
+    double verticalHeight = 27, footheight = 1, leftWidth = 0.5,
+           middleWidth = 2, rightWidth = 16.5, gamma = 25, toe = 0;
     Lmuur Lm = Lmuur(verticalHeight, footheight, leftWidth, middleWidth,
                      rightWidth, gamma, toe);
     std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
@@ -31,19 +31,24 @@ int main() {
     Lm.setSolidHeightDifference(21);
 
     Lm.calculateAll(0);
+    Lm.writeToCSV("CaseA.csv");
+
+    Lm.calculateAll(1);
+    Lm.writeToCSV("CaseB.csv");
+
+    Lm.calculateAll(2);
+    Lm.writeToCSV("CaseC.csv");
 
     std::cout << "kaaimuur met hoogte vanaf de voet: " << Lm.mHm
               << "[m] en dikte " << Lm.mBm << "[m]"
               << "\neen funderingszooldikte van " << Lm.mHv << "[m]"
               << "\nlinkervoetbreedte: " << Lm.mBl << "[m]"
               << "\nDe rechter voet is " << Lm.mBr << "[m]" << std::endl;
-    std::cout << "Force with magintude (Fx,Fy): ("
-              << Lm.mResultingForce.mForce.x << ","
-              << Lm.mResultingForce.mForce.y
+    std::cout << "Force with magintude (Fx,Fy): (" << Lm.mResultingR_d.mForce.x
+              << "," << Lm.mResultingR_d.mForce.y
               << ")\n and point of engagement (x,y): ("
-              << Lm.mResultingForce.mPoE.x << "," << Lm.mResultingForce.mPoE.y
+              << Lm.mResultingR_d.mPoE.x << "," << Lm.mResultingR_d.mPoE.y
               << ")" << std::endl;
-    Lm.writeToCSV("karakteristieke berekening.csv");
 
     return 0;
 }
