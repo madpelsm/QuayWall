@@ -9,7 +9,7 @@ int main() {
     // gamma, double toe);
     // mHm, mHv, mBl,mBm,mBr,gamma,toe
     double verticalHeight = 26, footheight = 2, leftWidth = 2.5,
-           middleWidth = 2, rightWidth = 15.5, gamma = 25, toe = 0.5,
+           middleWidth = 2, rightWidth = 16, gamma = 25, toe = 0.5,
            toeWidth = 1;
     Lmuur Lm = Lmuur(verticalHeight, footheight, leftWidth, middleWidth,
                      rightWidth, gamma, toe, toeWidth);
@@ -37,9 +37,9 @@ int main() {
     Lm.calculateAll(1);
     Lm.writeToCSV("CaseB.csv");
 
+    std::cout << "HA" << Lm.kastnerH << std::endl;
     Lm.calculateAll(2);
     Lm.writeToCSV("CaseC.csv");
-
     std::cout << "kaaimuur met hoogte vanaf de voet: " << Lm.mHm
               << "[m] en dikte " << Lm.mBm << "[m]"
               << "\neen funderingszooldikte van " << Lm.mHv << "[m]"

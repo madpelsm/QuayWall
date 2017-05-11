@@ -356,13 +356,13 @@ void Lmuur::calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
 void Lmuur::calculateWaterPressures() {
     double waterHeightLeft = mSoilHeightDifference + leftProfile.waterHeight;
     double waterHeightRight = rightProfile.waterHeight;
-    double d = mHm + mHv + mtoe - waterHeightLeft;
+    double d = mHm + mHv - waterHeightLeft;
     double kastnerHcorr =
         d + (waterHeightLeft / (1 + cbrt((1 + waterHeightLeft / d))));
     kastnerH = kastnerHcorr;
     mrhsWaterPressure = ForceVector(
-        glm::vec2(-gamma_water * kastnerHcorr * (mHm + mHv + mtoe) * 0.5, 0),
-        glm::vec2(mBm, (2.0 / 3.0) * (mHm + mHv + mtoe)));
+        glm::vec2(-gamma_water * kastnerHcorr * (mHm + mHv) * 0.5, 0),
+        glm::vec2(mBm, (2.0 / 3.0) * (mHm + mHv)));
     mlhsWaterPressure =
         ForceVector(glm::vec2(gamma_water * kastnerHcorr * (d)*0.5, 0),
                     glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * (d)));
@@ -682,6 +682,7 @@ void Lmuur::writeToCSV(std::string file_name) {
         file << "Linkerkant," << mlhsWaterPressure.mForce.x << ","
              << mlhsWaterPressure.mForce.y << "," << mlhsWaterPressure.mPoE.x
              << "," << mlhsWaterPressure.mPoE.y << "\n";
+        file << "kastern H hoogte:,,,," << kastnerH << "\n";
         file << "Actieve gronddrukken.\n";
         for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
             file << "Qa" << i << "," << mActiveSoilPressure[i].mForce.x << ","
