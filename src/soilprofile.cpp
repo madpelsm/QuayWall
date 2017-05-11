@@ -54,14 +54,14 @@ ForceVector Soilprofile::getQa(double lambda_a, Soillayer &soil, double upper,
     double Qa = 0;
     double Qa_1PoE = 0, Qa_2PoE = 0;
     double resultingPoE = 0;
-    if (waterHeight < upper || waterHeight > lower) {
-        if (waterHeight > lower) {
+    if (waterHeight <= upper || waterHeight >= lower) {
+        if (waterHeight >= lower) {
             gamma = soil.mDryWeight;
         } else {
             gamma = soil.mEffectiveWeight;
         }
         Qa_1 = 0.5 * lambda_a *
-               (gamma * (lower - upper) * (lower - upper) +
+               (gamma * std::pow((lower - upper), 2) +
                 2 * getEffectiveSoilePressure(depth) * cos(alpha) /
                     (cos(alpha - epsilon)) * ((lower - upper)));
         Qa_1PoE =
@@ -94,11 +94,13 @@ ForceVector Soilprofile::getQa(double lambda_a, Soillayer &soil, double upper,
 
 double Soilprofile::getLambda_a(double phi, double alpha, double psi,
                                 double epsilon) {
-    return cos(phi - alpha) * cos(phi - alpha) /
-           (cos(alpha) * cos(alpha) * cos(alpha + psi) *
-            pow((1 + std::sqrt(sin(phi + psi) * sin(phi - epsilon) /
-                               (cos(alpha + psi) * cos(epsilon - alpha)))),
-                2));
+    double lambda =
+        std::pow(cos(phi - alpha), 2) /
+        (std::pow(cos(alpha), 2) * cos(alpha + psi) *
+         std::pow((1 + std::sqrt(sin(phi + psi) * sin(phi - epsilon) /
+                                 (cos(alpha + psi) * cos(epsilon - alpha)))),
+                  2));
+    return lambda;
 }
 
 double Soilprofile::getPoE(double gamma, double thickness, double q_0) {

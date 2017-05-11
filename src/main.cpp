@@ -9,12 +9,10 @@ int main() {
     // gamma, double toe);
     // mHm, mHv, mBl,mBm,mBr,gamma,toe
     double verticalHeight = 26, footheight = 2, leftWidth = 2.5,
-           middleWidth = 2, rightWidth = 16, gamma = 25, toe = 0.5,
+           middleWidth = 2, rightWidth = 16.5, gamma = 25, toe = 0.5,
            toeWidth = 1;
     Lmuur Lm = Lmuur(verticalHeight, footheight, leftWidth, middleWidth,
                      rightWidth, gamma, toe, toeWidth);
-    std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
-              << Lm.mOwnWeight.mPoE.y << std::endl;
     Soillayer R1 = Soillayer(0.0, 3.0, 16.0, 0.39, 15.0);
     Soillayer R2 = Soillayer(3.0, 28.0, 18.0, 0.35, 25.0);
     Soillayer R3 = Soillayer(28.0, 100.0, 18.0, 0.35, 35.0);
@@ -37,7 +35,6 @@ int main() {
     Lm.calculateAll(1);
     Lm.writeToCSV("CaseB.csv");
 
-    std::cout << "HA" << Lm.kastnerH << std::endl;
     Lm.calculateAll(2);
     Lm.writeToCSV("CaseC.csv");
     std::cout << "kaaimuur met hoogte vanaf de voet: " << Lm.mHm

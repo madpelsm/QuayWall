@@ -62,9 +62,9 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
     ForceVector Qa;
     double psi = 0, phi = 0, alpha = 0;
     double lambda_a = 0;
-    double yTemp =
-        (mHm - correctionHeight) - footwidth * tan(M_PI / 4.0 + phi_d);
-    std::cout << "YTEMP:" << yTemp + (mHm - correctionHeight) << std::endl;
+    double yTemp = (mHm - correctionHeight) -
+                   footwidth * std::tan(M_PI / 4.0 + phi_d / 2.0);
+
     for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
         // dependencies for lambda_a
         psi = phi_d * (2.0 / 3.0);
@@ -83,11 +83,12 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 // helling van oppervlak is helling van muur
                 // (alpha=0,psi=2/3phi)
                 //
+
                 psi = (2.0 / 3.0) *
                       soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
                 lambda_a = soilprofile.getLambda_a(
-                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
-                    0);
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], alpha,
+                    psi, 0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, alpha);
                 // correctie voor de juiste richting van de vector te bekomen
@@ -112,8 +113,8 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 psi = (2.0 / 3.0) *
                       soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
                 lambda_a = soilprofile.getLambda_a(
-                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
-                    0);
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], alpha,
+                    psi, 0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, alpha);
                 Qa.mForce.y = Qa.mForce.x * sin(alpha + psi);
@@ -123,26 +124,24 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 Qa.mPoE.y += h + correctionHeight;
                 mActiveSoilPressure.push_back(Qa);
                 // Deel van de grond op grond actie
+                h = yTemp;
                 lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
                                  mHm - correctionHeight);
                 alpha = M_PI / 4.0 - phi_d / 2.0;
                 psi = soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
                 lambda_a = soilprofile.getLambda_a(
-                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
-                    0);
-                Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i],
-                                       yTemp, lower, yTemp);
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], alpha,
+                    psi, 0);
+                Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
+                                       lower, h);
                 Qa.mForce.y = Qa.mForce.x * sin(alpha + psi);
                 Qa.mForce.x =
                     -forceDirectionCorrection * Qa.mForce.x * cos(alpha + psi);
                 // Qa.mPoE.y is nu nog de ycoordinaat tov de bovenkant van de
                 // laag
-                Qa.mPoE.x =
-                    wallBorder +
-                    forceDirectionCorrection * Qa.mPoE.y /
-                        tan(M_PI / 4.0 +
-                            soilprofile.mSoillayers[i].mSafetyPhi[safetyCase] /
-                                2.0);
+                Qa.mPoE.x = wallBorder +
+                            forceDirectionCorrection * Qa.mPoE.y /
+                                tan(M_PI / 4.0 + phi_d / 2.0);
                 // naar globaal assenstelsel
                 Qa.mPoE.y += yTemp + correctionHeight;
                 mActiveSoilPressure.push_back(Qa);
@@ -155,8 +154,8 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 alpha = M_PI / 4.0 - phi_d / 2.0;
                 psi = soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
                 lambda_a = soilprofile.getLambda_a(
-                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
-                    0);
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], alpha,
+                    psi, 0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, alpha);
                 Qa.mForce.y =
@@ -180,7 +179,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
         double h = std::max(soilprofile.mSoillayers[i].mUpperbounds,
                             mHm - correctionHeight);
         double lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
-                                mHm - correctionHeight);
+                                mHm + mHv - correctionHeight);
         if (soilprofile.mSoillayers[i].mUpperbounds <
                 (mHm - correctionHeight + mHv + toeHeight) &&
             soilprofile.mSoillayers[i].mLowerBounds > mHm - correctionHeight) {
@@ -191,8 +190,8 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 psi = (2.0 / 3.0) *
                       soilprofile.mSoillayers[i].mSafetyPhi[safetyCase];
                 lambda_a = soilprofile.getLambda_a(
-                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], 0, psi,
-                    0);
+                    soilprofile.mSoillayers[i].mSafetyPhi[safetyCase], alpha,
+                    psi, 0);
                 Qa = soilprofile.getQa(lambda_a, soilprofile.mSoillayers[i], h,
                                        lower, h, 0);
                 Qa.mForce.y = Qa.mForce.x * sin(alpha + psi);
@@ -719,8 +718,8 @@ void Lmuur::writeToCSV(std::string file_name) {
              << mResultingR_d.mPoE.y << "\n";
         file << "\nUNITY CHECKS\n";
         file << "type,R_d,E_d,veiligheid\n";
-        file << "Evenwichtsdraagvermogen," << R_d << ","
-             << mResultingR_d.mForce.y * 100 << ","
+        file << "Evenwichtsdraagvermogen," << R_d / 100.0 << ","
+             << mResultingR_d.mForce.y << ","
              << R_d / (100 * mResultingR_d.mForce.y) << ",excentriciteit:,"
              << mExcentricity << ",B'," << b_a
              << ",effectievespanning op aanzet:,"
@@ -731,7 +730,8 @@ void Lmuur::writeToCSV(std::string file_name) {
              << "," << abs(RH_d / mResultingR_dSchuiven.mForce.x) << "\n";
         file << "Kantelen," << momentST << "," << momentDST << ","
              << (momentDST != 0 ? (std::abs(momentST / momentDST)) : 0)
-             << ",moment in kNm,\n";
+             << ",moment in kNm,\n"
+             << std::endl;
         if (!file) {
             std::cout << "Write failed." << std::endl;
         }
