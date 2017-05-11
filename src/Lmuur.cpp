@@ -516,7 +516,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     bool bsoil = true, bactive = true, bpassive = true, bbous = false,
          bwater = false, bown = true, bbuoy = false;
     for (size_t i = 0; i < mSoilWedgeWeight.size(); ++i) {
-        distanceX = mSoilWedgeWeight[i].mPoE.x - mBl;
+        distanceX = mSoilWedgeWeight[i].mPoE.x + mBl;
         distanceY = mSoilWedgeWeight[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mSoilWedgeWeight[i].mForce.y -
                   distanceY * mSoilWedgeWeight[i].mForce.x;
@@ -527,7 +527,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
         }
     }
     for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
-        distanceX = mActiveSoilPressure[i].mPoE.x - mBl;
+        distanceX = mActiveSoilPressure[i].mPoE.x + mBl;
         distanceY = mActiveSoilPressure[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mActiveSoilPressure[i].mForce.y -
                   distanceY * mActiveSoilPressure[i].mForce.x;
@@ -549,7 +549,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
         }
     }
     for (size_t i = 0; i < mBoussinesqResultant.size(); ++i) {
-        distanceX = mBoussinesqResultant[i].mPoE.x - mBl;
+        distanceX = mBoussinesqResultant[i].mPoE.x + mBl;
         distanceY = mBoussinesqResultant[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mBoussinesqResultant[i].mForce.y -
                   distanceY * mBoussinesqResultant[i].mForce.x;
@@ -559,7 +559,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
             momentDST += mSafetyQ[safetyCase] * momenti;
         }
     }
-    distanceX = mOwnWeight.mPoE.x - mBl;
+    distanceX = mOwnWeight.mPoE.x + mBl;
     distanceY = mOwnWeight.mPoE.y - mHv - mHm - mtoe;
     momenti = distanceX * mOwnWeight.mForce.y - distanceY * mOwnWeight.mForce.x;
     if (bown) {
@@ -567,7 +567,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
     }
-    distanceX = mBuoyantForce.mPoE.x - mBl;
+    distanceX = mBuoyantForce.mPoE.x + mBl;
     distanceY = mBuoyantForce.mPoE.y - mHv - mHm;
     momenti =
         distanceX * mBuoyantForce.mForce.y - distanceY * mBuoyantForce.mForce.x;
@@ -576,7 +576,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
     }
-    distanceX = mlhsWaterPressure.mPoE.x - mBl;
+    distanceX = mlhsWaterPressure.mPoE.x + mBl;
     distanceY = mlhsWaterPressure.mPoE.y - mHv - mHm;
     momenti = distanceX * mlhsWaterPressure.mForce.y -
               distanceY * mlhsWaterPressure.mForce.x;
@@ -585,7 +585,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
     }
-    distanceX = mrhsWaterPressure.mPoE.x - mBl;
+    distanceX = mrhsWaterPressure.mPoE.x + mBl;
     distanceY = mrhsWaterPressure.mPoE.y - mHv - mHm;
     momenti = distanceX * mrhsWaterPressure.mForce.y -
               distanceY * mrhsWaterPressure.mForce.x;
