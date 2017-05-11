@@ -13,15 +13,17 @@ class Lmuur {
    public:
     // intermediate results
     double kastnerH = 0;
+    double b_a = 0;
     // end of intermediate result storage
     // begin unityCheck quantities
     double R_d = 0, RH_d = 0, momentST = 0, momentDST = 0;
     // end unity check quantities
+    bool mexcentricitycalculated = false;
     double gamma_water = 9.81, mq = 30;
     double mExcentricity = 0;
     double mCohesion = 2;  // kNm^2/m
     double mHm, mHv, mBl, mBm, mBr, mBz, mxI, mxII, myI, myII, mx, my, mAI,
-        mAII, gamma, mA, mtoe, mxtoe, mytoe, mAtoe;
+        mAII, gamma, mA, mtoe, mxtoe, mytoe, mAtoe, mtoewidth;
     double mForce, mSoilHeightDifference;
     // FORCES
     ForceVector mOwnWeight;  // real weight, no buoyance effect
@@ -44,7 +46,7 @@ class Lmuur {
     std::vector<double> mSafetyQ = {1.5, 1.5, 1.3, 0};
 
     Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr,
-          double gamma, double toe = 0);
+          double gamma, double toe = 0, double toewidth = 0);
     ~Lmuur();
     void clearForces();
     void calculateProperties();

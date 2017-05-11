@@ -1,14 +1,15 @@
 #include <Lmuur.h>
 
 Lmuur::Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr,
-             double gamma, double toe)
+             double gamma, double toe, double _toewidth)
     : mHm(mHm),
       mHv(mHv),
       mBl(mBl),
       mBm(mBm),
       mBr(mBr),
       gamma(gamma),
-      mtoe(toe) {
+      mtoe(toe),
+      mtoewidth(_toewidth) {
     calculateProperties();
 }
 
@@ -24,7 +25,7 @@ void Lmuur::calculateProperties() {
     myI = mHm / 2.0;
     mxII = mBz / 2.0 - mBl;
     myII = mHv / 2.0 + mHm;
-    mxtoe = mBr + mBm + mtoe / 2.0;
+    mxtoe = mBr + mBm + mtoewidth / 2.0;
     mytoe = mHm + mHv + mtoe / 2.0;
     // general p.o.g.
     mA = mAI + mAII + mAtoe;
@@ -348,6 +349,7 @@ void Lmuur::calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
             }
         }
     }
+
     std::cout << "Passive soil pressure calculation completed!" << std::endl;
 }
 
@@ -626,7 +628,11 @@ void Lmuur::calculateAll(int safetyCase) {
 }
 
 void Lmuur::calculateExcentricity() {
-    mExcentricity = mResultingR_d.mPoE.x - mxII;
+    if (!mexcentricitycalculated) {
+        double dx = (mHm + mHv - mResultingR_d.mPoE.y) *
+                    mResultingR_d.mForce.x / mResultingR_d.mForce.y;
+        mExcentricity = (mResultingR_d.mPoE.x + dx) - mxII;
+    }
 }
 
 double Lmuur::squareSurface(double height, double width) {
@@ -711,10 +717,14 @@ void Lmuur::writeToCSV(std::string file_name) {
              << mResultingR_d.mPoE.y << "\n";
         file << "\nUNITY CHECKS\n";
         file << "type,R_d,E_d,veiligheid\n";
-        file << "Evewichtsdraagvermogen," << R_d << ","
+        file << "Evenwichtsdraagvermogen," << R_d << ","
              << mResultingR_d.mForce.y * 100 << ","
              << R_d / (100 * mResultingR_d.mForce.y) << ",excentriciteit:,"
-             << mExcentricity << "\n";
+             << mExcentricity << ",B'," << b_a
+             << ",effectievespanning op aanzet:,"
+             << leftProfile.getEffectiveSoilePressure(mHm + mHv -
+                                                      mSoilHeightDifference)
+             << "\n";
         file << "Schuiven," << RH_d << "," << mResultingR_dSchuiven.mForce.x
              << "," << abs(RH_d / mResultingR_dSchuiven.mForce.x) << "\n";
         file << "Kantelen," << momentST << "," << momentDST << ","
@@ -761,7 +771,8 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
     // Safetyfactors on cohesion
     double c_d = mCohesion / effectiveCohesion_safetyF;
 
-    double B = mBz - 2 * mExcentricity;
+    double B = mBz - std::abs(2 * mExcentricity);
+    b_a = B;
     double L = 100;
     // invloedsfactoren
     double N_q = exp(M_PI * tan(phi_d)) * tan(M_PI / 4.0 + phi_d / 2.0) *

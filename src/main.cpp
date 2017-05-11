@@ -8,10 +8,10 @@ int main() {
     // Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr, double
     // gamma, double toe);
     // mHm, mHv, mBl,mBm,mBr,gamma,toe
-    double verticalHeight = 26, footheight = 2, leftWidth = 1, middleWidth = 2,
-           rightWidth = 16, gamma = 25, toe = 0.2;
+    double verticalHeight = 26, footheight = 2, leftWidth = 1.5,
+           middleWidth = 2, rightWidth = 15, gamma = 25, toe = 1, toeWidth = 2;
     Lmuur Lm = Lmuur(verticalHeight, footheight, leftWidth, middleWidth,
-                     rightWidth, gamma, toe);
+                     rightWidth, gamma, toe, toeWidth);
     std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
               << Lm.mOwnWeight.mPoE.y << std::endl;
     Soillayer R1 = Soillayer(0.0, 3.0, 16.0, 0.39, 15.0);
