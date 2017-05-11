@@ -24,7 +24,7 @@ void Lmuur::calculateProperties() {
     myI = mHm / 2.0;
     mxII = mBz / 2.0 - mBl;
     myII = mHv / 2.0 + mHm;
-    mxtoe = -mBl + mtoe / 2.0;
+    mxtoe = mBr + mBm + mtoe / 2.0;
     mytoe = mHm + mHv + mtoe / 2.0;
     // general p.o.g.
     mA = mAI + mAII + mAtoe;
@@ -41,12 +41,12 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
     double correctionHeight = 0;
     double forceDirectionCorrection = 1;
     double wallBorder = mBm;
-    double toeHeight = 0;
+    double toeHeight = mtoe;
     if (side != 1) {
         forceDirectionCorrection = -1;
         correctionHeight = mSoilHeightDifference;
         wallBorder = 0;
-        toeHeight = mtoe;
+        toeHeight = 0;
     }
     if (safetyCase > soilprofile.mSoillayers[0].mSafetyPhi.size()) {
         abort();
@@ -72,7 +72,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
         // h = diepte tov maaiveld (pos = naar beneden)
         double h = soilprofile.mSoillayers[i].mUpperbounds;
         double lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
-                                mHm - correctionHeight);
+                                mHm - correctionHeight + toeHeight);
         if (h < yTemp) {
             // yTemp zal dus sowieso positief zijn, want h is positief
             if (lower < yTemp) {
@@ -118,7 +118,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
                 Qa.mForce.x =
                     -forceDirectionCorrection * Qa.mForce.x * cos(alpha + psi);
                 Qa.mPoE.x = wallBorder;
-                Qa.mPoE.y += h;
+                Qa.mPoE.y += h + correctionHeight;
                 mActiveSoilPressure.push_back(Qa);
                 // Deel van de grond op grond actie
                 lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
@@ -329,10 +329,10 @@ void Lmuur::calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
         double lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
                                 mHm - correctionHeight);
         if (soilprofile.mSoillayers[i].mUpperbounds <
-                (mHm - correctionHeight + mHv + mtoe) &&
+                (mHm - correctionHeight + mHv) &&
             soilprofile.mSoillayers[i].mLowerBounds > mHm - correctionHeight) {
             lower = std::min(soilprofile.mSoillayers[i].mLowerBounds,
-                             mHm + mHv + mtoe - correctionHeight);
+                             mHm + mHv + -correctionHeight);
             if (lower > mHm - correctionHeight) {
                 alpha = 0;
                 psi = -(2.0 / 3.0) *
@@ -354,16 +354,16 @@ void Lmuur::calculatePassiveSoilPressure(Soilprofile& soilprofile, double side,
 void Lmuur::calculateWaterPressures() {
     double waterHeightLeft = mSoilHeightDifference + leftProfile.waterHeight;
     double waterHeightRight = rightProfile.waterHeight;
-    double d = mHm + mHv - waterHeightLeft;
+    double d = mHm + mHv + mtoe - waterHeightLeft;
     double kastnerHcorr =
         d + (waterHeightLeft / (1 + cbrt((1 + waterHeightLeft / d))));
     kastnerH = kastnerHcorr;
     mrhsWaterPressure = ForceVector(
-        glm::vec2(-gamma_water * kastnerHcorr * (mHm + mHv) * 0.5, 0),
-        glm::vec2(mBm, (2.0 / 3.0) * (mHm + mHv)));
+        glm::vec2(-gamma_water * kastnerHcorr * (mHm + mHv + mtoe) * 0.5, 0),
+        glm::vec2(mBm, (2.0 / 3.0) * (mHm + mHv + mtoe)));
     mlhsWaterPressure =
-        ForceVector(glm::vec2(gamma_water * kastnerHcorr * (mtoe + d) * 0.5, 0),
-                    glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * (d + mtoe)));
+        ForceVector(glm::vec2(gamma_water * kastnerHcorr * (d)*0.5, 0),
+                    glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * (d)));
     std::cout << "Water pressures calculatio completed!" << std::endl;
 }
 
@@ -372,9 +372,9 @@ void Lmuur::calculateBoussinesqLoads() {
         ForceVector(glm::vec2(-0.5 * mq * mHm, 0), glm::vec2(mBm, mHm * 0.5)));
     mBoussinesqResultant.push_back(ForceVector(
         glm::vec2(0, 0.5 * mq * mBr), glm::vec2(mBm + mBr * 0.5, mHm)));
-    mBoussinesqResultant.push_back(
-        ForceVector(glm::vec2(-0.5 * mq * mHv, mq * mHv / M_PI),
-                    glm::vec2(mBm + mBr, mHm + mHv * 0.5)));
+    mBoussinesqResultant.push_back(ForceVector(
+        glm::vec2(-0.5 * mq * (mHv + mtoe), mq * (mHv + mtoe) / M_PI),
+        glm::vec2(mBm + mBr, mHm + (mtoe + mHv) * 0.5)));
     std::cout << "Boussinesq calculation completed!" << std::endl;
 }
 
@@ -510,12 +510,15 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     double distanceX = 0;
     double distanceY = 0;
     double momenti = 0;
+    // says if it has a positive effect on tilt (then true).
+    bool bsoil = true, bactive = true, bpassive = true, bbous = false,
+         bwater = false, bown = true, bbuoy = false;
     for (size_t i = 0; i < mSoilWedgeWeight.size(); ++i) {
         distanceX = mSoilWedgeWeight[i].mPoE.x - mBl;
-        distanceY = mSoilWedgeWeight[i].mPoE.y - mHv - mHm - mtoe;
+        distanceY = mSoilWedgeWeight[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mSoilWedgeWeight[i].mForce.y -
                   distanceY * mSoilWedgeWeight[i].mForce.x;
-        if (momenti >= 0) {
+        if (bsoil) {
             momentST += mSafetyGInf[safetyCase] * momenti;
         } else {
             momentDST += mSafetyGSup[safetyCase] * momenti;
@@ -523,10 +526,10 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     }
     for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
         distanceX = mActiveSoilPressure[i].mPoE.x - mBl;
-        distanceY = mActiveSoilPressure[i].mPoE.y - mHv - mHm - mtoe;
+        distanceY = mActiveSoilPressure[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mActiveSoilPressure[i].mForce.y -
                   distanceY * mActiveSoilPressure[i].mForce.x;
-        if (momenti >= 0) {
+        if (bactive) {
             momentST += mSafetyGInf[safetyCase] * momenti;
         } else {
             momentDST += mSafetyGSup[safetyCase] * momenti;
@@ -534,10 +537,10 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     }
     for (size_t i = 0; i < mPassiveSoilPressure.size(); ++i) {
         distanceX = mPassiveSoilPressure[i].mPoE.x - mBl;
-        distanceY = mPassiveSoilPressure[i].mPoE.y - mHv - mHm - mtoe;
+        distanceY = mPassiveSoilPressure[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mPassiveSoilPressure[i].mForce.y -
                   distanceY * mPassiveSoilPressure[i].mForce.x;
-        if (momenti >= 0) {
+        if (bpassive) {
             momentST += mSafetyGInf[safetyCase] * momenti;
         } else {
             momentDST += mSafetyGSup[safetyCase] * momenti;
@@ -545,46 +548,46 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     }
     for (size_t i = 0; i < mBoussinesqResultant.size(); ++i) {
         distanceX = mBoussinesqResultant[i].mPoE.x - mBl;
-        distanceY = mBoussinesqResultant[i].mPoE.y - mHv - mHm - mtoe;
+        distanceY = mBoussinesqResultant[i].mPoE.y - mHv - mHm;
         momenti = distanceX * mBoussinesqResultant[i].mForce.y -
                   distanceY * mBoussinesqResultant[i].mForce.x;
-        if (momenti >= 0) {
+        if (bbous) {
             momentST += mSafetyQ[3] * momenti;
         } else {
-            momentDST += mSafetyQ[3] * momenti;
+            momentDST += mSafetyQ[safetyCase] * momenti;
         }
     }
     distanceX = mOwnWeight.mPoE.x - mBl;
     distanceY = mOwnWeight.mPoE.y - mHv - mHm - mtoe;
     momenti = distanceX * mOwnWeight.mForce.y - distanceY * mOwnWeight.mForce.x;
-    if (momenti >= 0) {
+    if (bown) {
         momentST += mSafetyGInf[safetyCase] * momenti;
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
     }
     distanceX = mBuoyantForce.mPoE.x - mBl;
-    distanceY = mBuoyantForce.mPoE.y - mHv - mHm - mtoe;
+    distanceY = mBuoyantForce.mPoE.y - mHv - mHm;
     momenti =
         distanceX * mBuoyantForce.mForce.y - distanceY * mBuoyantForce.mForce.x;
-    if (momenti >= 0) {
+    if (bbuoy) {
         momentST += mSafetyGInf[safetyCase] * momenti;
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
     }
     distanceX = mlhsWaterPressure.mPoE.x - mBl;
-    distanceY = mlhsWaterPressure.mPoE.y - mHv - mHm - mtoe;
+    distanceY = mlhsWaterPressure.mPoE.y - mHv - mHm;
     momenti = distanceX * mlhsWaterPressure.mForce.y -
               distanceY * mlhsWaterPressure.mForce.x;
-    if (momenti >= 0) {
+    if (bwater) {
         momentST += mSafetyGInf[safetyCase] * momenti;
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
     }
     distanceX = mrhsWaterPressure.mPoE.x - mBl;
-    distanceY = mrhsWaterPressure.mPoE.y - mHv - mHm - mtoe;
+    distanceY = mrhsWaterPressure.mPoE.y - mHv - mHm;
     momenti = distanceX * mrhsWaterPressure.mForce.y -
               distanceY * mrhsWaterPressure.mForce.x;
-    if (momenti >= 0) {
+    if (bwater) {
         momentST += mSafetyGInf[safetyCase] * momenti;
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;

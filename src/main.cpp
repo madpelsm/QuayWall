@@ -8,8 +8,8 @@ int main() {
     // Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr, double
     // gamma, double toe);
     // mHm, mHv, mBl,mBm,mBr,gamma,toe
-    double verticalHeight = 27, footheight = 1, leftWidth = 0.5,
-           middleWidth = 2, rightWidth = 16.5, gamma = 25, toe = 0;
+    double verticalHeight = 26, footheight = 2, leftWidth = 1, middleWidth = 2,
+           rightWidth = 16, gamma = 25, toe = 0.2;
     Lmuur Lm = Lmuur(verticalHeight, footheight, leftWidth, middleWidth,
                      rightWidth, gamma, toe);
     std::cout << Lm.mOwnWeight.mForce.y << "," << Lm.mOwnWeight.mPoE.x << ","
