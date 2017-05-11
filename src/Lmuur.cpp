@@ -64,6 +64,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
     double lambda_a = 0;
     double yTemp =
         (mHm - correctionHeight) - footwidth * tan(M_PI / 4.0 + phi_d);
+    std::cout << "YTEMP:" << yTemp + (mHm - correctionHeight) << std::endl;
     for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
         // dependencies for lambda_a
         psi = phi_d * (2.0 / 3.0);
