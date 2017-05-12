@@ -20,7 +20,7 @@ void Soillayer::calculateWeights() {
 
 void Soillayer::calculateSafetyValues() {
     // input is degree, internal is radians
-    mPhiA = atan(tan(mphi) / 1.25);
+    mPhiA = std::atan(std::tan(mphi) / 1.25);
     mPhiB = mphi;
     mPhiC = mPhiA;
     mSafetyPhi.reserve(3);

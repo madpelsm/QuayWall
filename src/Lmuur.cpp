@@ -772,6 +772,7 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
                            double effectiveCohesion_safetyF) {
     // Safetyfactors on cohesion
     double c_d = mCohesion / effectiveCohesion_safetyF;
+    std::cout << phi_d * 180.0 / M_PI << std::endl;
 
     double B = mBz - std::abs(2 * mExcentricity);
     b_a = B;
