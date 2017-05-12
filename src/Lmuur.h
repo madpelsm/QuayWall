@@ -44,6 +44,7 @@ class Lmuur {
     std::vector<double> mSafetyGSup = {1.1, 1.35, 1};
     std::vector<double> mSafetyGInf = {0.9, 1, 1};
     std::vector<double> mSafetyQ = {1.5, 1.5, 1.3, 0};
+    std::vector<double> mSafetyC = {1.25,1,1.25};
 
     Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr,
           double gamma, double toe = 0, double toewidth = 0);

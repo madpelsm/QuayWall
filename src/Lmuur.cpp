@@ -748,8 +748,8 @@ void Lmuur::writeToCSV(std::string file_name) {
 
 void Lmuur::makeUnityChecks(int safetyCase) {
     double phi_d = getPhiAtConstructionFoot(safetyCase);
-    R_d =
-        calculateR_d(phi_d, leftProfile, mHm + mHv - mSoilHeightDifference, 1);
+    R_d = calculateR_d(phi_d, leftProfile, mHm + mHv - mSoilHeightDifference,
+                       mSafetyC[safetyCase]);
     RH_d = mResultingR_dSchuiven.mForce.y * tan(phi_d);
 
     calculateTiltMomentAtFoot(safetyCase);
