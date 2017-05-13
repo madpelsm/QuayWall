@@ -374,7 +374,7 @@ void Lmuur::calculateBoussinesqLoads() {
     double wedgeYcoord = mSoilWedgeHeight[0];
     if (wedgeYcoord > 0) {
         mBoussinesqResultant.push_back(ForceVector(
-            glm::vec2(-0.5 * mq * wedgeYcoord, 0.5 * mq * wedgeYcoord / M_PI),
+            glm::vec2(-0.5 * mq * wedgeYcoord, mq * wedgeYcoord / M_PI),
             glm::vec2(mBm, wedgeYcoord / 2.0)));
         mBoussinesqResultant.push_back(
             ForceVector(glm::vec2(-0.5 * mq * (mHm - wedgeYcoord), 0),
