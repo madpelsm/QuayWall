@@ -65,6 +65,7 @@ void Lmuur::calculateActiveSoilPressures(Soilprofile& soilprofile, double side,
     double yTemp = (mHm - correctionHeight) -
                    footwidth * std::tan(M_PI / 4.0 + phi_d / 2.0);
 
+    mSoilWedgeHeight.push_back(yTemp);
     for (size_t i = 0; i < soilprofile.mSoillayers.size(); ++i) {
         // dependencies for lambda_a
         psi = phi_d * (2.0 / 3.0);
@@ -370,8 +371,19 @@ void Lmuur::calculateWaterPressures() {
 }
 
 void Lmuur::calculateBoussinesqLoads() {
-    mBoussinesqResultant.push_back(
-        ForceVector(glm::vec2(-0.5 * mq * mHm, 0), glm::vec2(mBm, mHm * 0.5)));
+    double wedgeYcoord = mSoilWedgeHeight[0];
+    if (wedgeYcoord > 0) {
+        mBoussinesqResultant.push_back(ForceVector(
+            glm::vec2(-0.5 * mq * wedgeYcoord, 0.5 * mq * wedgeYcoord / M_PI),
+            glm::vec2(mBm, wedgeYcoord / 2.0)));
+        mBoussinesqResultant.push_back(
+            ForceVector(glm::vec2(-0.5 * mq * (mHm - wedgeYcoord), 0),
+                        glm::vec2(mBm, (mHm + wedgeYcoord) * 0.5)));
+
+    } else {
+        mBoussinesqResultant.push_back(ForceVector(
+            glm::vec2(-0.5 * mq * mHm, 0), glm::vec2(mBm, mHm * 0.5)));
+    }
     mBoussinesqResultant.push_back(ForceVector(
         glm::vec2(0, 0.5 * mq * mBr), glm::vec2(mBm + mBr * 0.5, mHm)));
     mBoussinesqResultant.push_back(ForceVector(
@@ -772,7 +784,6 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
                            double effectiveCohesion_safetyF) {
     // Safetyfactors on cohesion
     double c_d = mCohesion / effectiveCohesion_safetyF;
-    std::cout << phi_d * 180.0 / M_PI << std::endl;
 
     double B = mBz - std::abs(2 * mExcentricity);
     b_a = B;

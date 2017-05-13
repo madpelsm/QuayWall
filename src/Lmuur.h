@@ -20,6 +20,7 @@ class Lmuur {
     // end unity check quantities
     bool mexcentricitycalculated = false;
     double gamma_water = 9.81, mq = 30;
+    std::vector<double> mSoilWedgeHeight;
     double mExcentricity = 0;
     double mCohesion = 2;  // kNm^2/m
     double mHm, mHv, mBl, mBm, mBr, mBz, mxI, mxII, myI, myII, mx, my, mAI,
