@@ -28,10 +28,11 @@ class Lmuur {
     double mForce, mSoilHeightDifference;
     // FORCES
     ForceVector mOwnWeight;  // real weight, no buoyance effect
-    ForceVector mBuoyantForce;
     ForceVector mlhsWaterPressure, mrhsWaterPressure;
     ForceVector mResultingR_d;
     ForceVector mResultingR_dSchuiven;
+    ForceVector mBuoyantForce;
+    ForceVector mBuoyantForceR_d;
     std::vector<ForceVector> mSoilWedgeWeight;  // effective weight
     std::vector<ForceVector> mActiveSoilPressure;
     std::vector<ForceVector> mBoussinesqResultant;
@@ -67,7 +68,7 @@ class Lmuur {
                                       // since it is extremely simple in our
                                       // case. it is faster to implement the
                                       // result right away.
-    void calculateBuoyancy();
+    void calculateBuoyancy(int failureMode=0);
     void setSolidHeightDifference(double height);
     bool isBeneficial(ForceVector& _forcevector, int _failuremode,
                       int _safetycase);

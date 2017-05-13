@@ -392,16 +392,30 @@ void Lmuur::calculateBoussinesqLoads() {
     std::cout << "Boussinesq calculation completed!" << std::endl;
 }
 
-void Lmuur::calculateBuoyancy() {
-    double wetHeight = mHm - rightProfile.waterHeight;
+void Lmuur::calculateBuoyancy(int failureMode) {
+    // default: laagste waterstand: voor R_d
+    double wetHeight = mHm - leftProfile.waterHeight - mSoilHeightDifference;
+    if (failureMode != 0) {
+        // hoogste waterstandL negatief voor RH_d en kantel
+        wetHeight = mHm - rightProfile.waterHeight;
+    }
     double newWetArea = mAI * (wetHeight / mHm);
     double y1 = rightProfile.waterHeight + wetHeight * 0.5;
-    mBuoyantForce =
-        ForceVector(glm::vec2(0, -((newWetArea + mAII + mAtoe) * gamma_water)),
-                    glm::vec2((newWetArea * mxI + mAII * mxII + mxtoe * mAtoe) /
-                                  (newWetArea + mAII + mAtoe),
-                              (newWetArea * y1 + mAII * myII + mAtoe * mytoe) /
-                                  (newWetArea + mAII + mAtoe)));
+    if (failureMode == 0) {
+        mBuoyantForceR_d = ForceVector(
+            glm::vec2(0, -((newWetArea + mAII + mAtoe) * gamma_water)),
+            glm::vec2((newWetArea * mxI + mAII * mxII + mxtoe * mAtoe) /
+                          (newWetArea + mAII + mAtoe),
+                      (newWetArea * y1 + mAII * myII + mAtoe * mytoe) /
+                          (newWetArea + mAII + mAtoe)));
+    } else {
+        mBuoyantForce = ForceVector(
+            glm::vec2(0, -((newWetArea + mAII + mAtoe) * gamma_water)),
+            glm::vec2((newWetArea * mxI + mAII * mxII + mxtoe * mAtoe) /
+                          (newWetArea + mAII + mAtoe),
+                      (newWetArea * y1 + mAII * myII + mAtoe * mytoe) /
+                          (newWetArea + mAII + mAtoe)));
+    }
     std::cout << "Buoyancy calculation completed!" << std::endl;
 }
 
@@ -498,10 +512,17 @@ ForceVector Lmuur::calculateResultingForce(int failureMode, int safetyCase) {
     mOy += sownweight * mOwnWeight.mForce.y * mOwnWeight.mPoE.x;
     mOx += sownweight * mOwnWeight.mForce.x * mOwnWeight.mPoE.y;
     // buoyant
-    sumFx += sbuoy * mBuoyantForce.mForce.x;
-    sumFy += sbuoy * mBuoyantForce.mForce.y;
-    mOy += sbuoy * mBuoyantForce.mForce.y * mBuoyantForce.mPoE.x;
-    mOx += sbuoy * mBuoyantForce.mForce.x * mBuoyantForce.mPoE.y;
+    if (failureMode != 0) {
+        sumFx += sbuoy * mBuoyantForce.mForce.x;
+        sumFy += sbuoy * mBuoyantForce.mForce.y;
+        mOy += sbuoy * mBuoyantForce.mForce.y * mBuoyantForce.mPoE.x;
+        mOx += sbuoy * mBuoyantForce.mForce.x * mBuoyantForce.mPoE.y;
+    } else {
+        sumFx += sbuoy * mBuoyantForceR_d.mForce.x;
+        sumFy += sbuoy * mBuoyantForceR_d.mForce.y;
+        mOy += sbuoy * mBuoyantForceR_d.mForce.y * mBuoyantForceR_d.mPoE.x;
+        mOx += sbuoy * mBuoyantForceR_d.mForce.x * mBuoyantForceR_d.mPoE.y;
+    }
     // rhsWaterPressure
     sumFx += swater * mrhsWaterPressure.mForce.x;
     sumFy += swater * mrhsWaterPressure.mForce.y;
@@ -610,6 +631,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
 }
 
 void Lmuur::clearForces() {
+    mSoilWedgeHeight.clear();
     mSoilWedgeWeight.clear();
     mActiveSoilPressure.clear();
     mBoussinesqResultant.clear();
@@ -629,11 +651,11 @@ void Lmuur::calculateAll(int safetyCase) {
                              -1, safetyCase);
     calculateWaterPressures();
     calculateBuoyancy();
+    calculateBuoyancy(1);
     calculateBoussinesqLoads();
 
     mResultingR_d = calculateResultingForce(0, safetyCase);
     calculateExcentricity();
-
     mResultingR_dSchuiven = calculateResultingForce(1, safetyCase);
 
     makeUnityChecks(safetyCase);
@@ -686,6 +708,9 @@ void Lmuur::writeToCSV(std::string file_name) {
         file << "Archimedes," << mBuoyantForce.mForce.x << ","
              << mBuoyantForce.mForce.y << "," << mBuoyantForce.mPoE.x << ","
              << mBuoyantForce.mPoE.y << "\n";
+        file << "Archimedes in R_d," << mBuoyantForceR_d.mForce.x << ","
+             << mBuoyantForceR_d.mForce.y << "," << mBuoyantForceR_d.mPoE.x
+             << "," << mBuoyantForceR_d.mPoE.y << "\n";
 
         file << "Waterdrukken mbv Kastner.\n";
         file << "Rechterkant," << mrhsWaterPressure.mForce.x << ","
