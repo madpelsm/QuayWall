@@ -358,12 +358,15 @@ void Lmuur::calculateWaterPressures() {
     double waterHeightLeft = mSoilHeightDifference + leftProfile.waterHeight;
     double waterHeightRight = rightProfile.waterHeight;
     double d = mHm + mHv - waterHeightLeft;
-    double kastnerHcorr =
-        d + (waterHeightLeft / (1 + cbrt((1 + waterHeightLeft / d))));
+    double h_a = waterHeightLeft - waterHeightRight;
+    std::cout << waterHeightLeft << std::endl;
+    double kastnerHcorr = d + (h_a / (1 + cbrt((1 + h_a / d))));
+    std::cout << d << std::endl;
     kastnerH = kastnerHcorr;
-    mrhsWaterPressure = ForceVector(
-        glm::vec2(-gamma_water * kastnerHcorr * (mHm + mHv) * 0.5, 0),
-        glm::vec2(mBm, (2.0 / 3.0) * (mHm + mHv)));
+    std::cout << kastnerH << std::endl;
+    mrhsWaterPressure =
+        ForceVector(glm::vec2(-gamma_water * kastnerHcorr * (h_a + d) * 0.5, 0),
+                    glm::vec2(mBm, waterHeightRight + (2.0 / 3.0) * (h_a + d)));
     mlhsWaterPressure =
         ForceVector(glm::vec2(gamma_water * kastnerHcorr * (d)*0.5, 0),
                     glm::vec2(0, waterHeightLeft + (2.0 / 3.0) * (d)));
