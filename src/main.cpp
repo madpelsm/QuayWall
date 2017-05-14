@@ -30,13 +30,13 @@ int main() {
     Lm.setSolidHeightDifference(21);
 
     Lm.calculateAll(0);
-    Lm.writeToCSV("CaseA.csv");
+    Lm.writeToCSV("CaseAfin.csv");
 
     Lm.calculateAll(1);
-    Lm.writeToCSV("CaseB.csv");
+    Lm.writeToCSV("CaseBfin.csv");
 
     Lm.calculateAll(2);
-    Lm.writeToCSV("CaseC.csv");
+    Lm.writeToCSV("CaseCfin.csv");
     std::cout << "kaaimuur met hoogte vanaf de voet: " << Lm.mHm
               << "[m] en dikte " << Lm.mBm << "[m]"
               << "\neen funderingszooldikte van " << Lm.mHv << "[m]"

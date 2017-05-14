@@ -5,6 +5,7 @@
 #include <fstream>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -14,11 +15,16 @@ class Lmuur {
     // intermediate results
     double kastnerH = 0;
     double b_a = 0;
+    double phi_devenwicht;
+    std::string q_u_tostring;
+    std::string destabilizerendMoment;
+    std::string stabilizerendMoment;
     // end of intermediate result storage
     // begin unityCheck quantities
     double R_d = 0, RH_d = 0, momentST = 0, momentDST = 0;
     // end unity check quantities
     bool mexcentricitycalculated = false;
+    bool verboseCSV = true;
     double gamma_water = 9.81, mq = 30;
     std::vector<double> mSoilWedgeHeight;
     double mExcentricity = 0;
@@ -46,7 +52,7 @@ class Lmuur {
     std::vector<double> mSafetyGSup = {1.1, 1.35, 1};
     std::vector<double> mSafetyGInf = {0.9, 1, 1};
     std::vector<double> mSafetyQ = {1.5, 1.5, 1.3, 0};
-    std::vector<double> mSafetyC = {1.25,1,1.25};
+    std::vector<double> mSafetyC = {1.25, 1, 1.25};
 
     Lmuur(double mHm, double mHv, double mBl, double mBm, double mBr,
           double gamma, double toe = 0, double toewidth = 0);
@@ -68,7 +74,7 @@ class Lmuur {
                                       // since it is extremely simple in our
                                       // case. it is faster to implement the
                                       // result right away.
-    void calculateBuoyancy(int failureMode=0);
+    void calculateBuoyancy(int failureMode = 0);
     void setSolidHeightDifference(double height);
     bool isBeneficial(ForceVector& _forcevector, int _failuremode,
                       int _safetycase);

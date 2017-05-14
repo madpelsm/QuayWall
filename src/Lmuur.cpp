@@ -359,9 +359,7 @@ void Lmuur::calculateWaterPressures() {
     double waterHeightRight = rightProfile.waterHeight;
     double d = mHm + mHv - waterHeightLeft;
     double h_a = waterHeightLeft - waterHeightRight;
-    std::cout << waterHeightLeft << std::endl;
     double kastnerHcorr = d + (h_a / (1 + cbrt((1 + h_a / d))));
-    std::cout << d << std::endl;
     kastnerH = kastnerHcorr;
     std::cout << kastnerH << std::endl;
     mrhsWaterPressure =
@@ -461,7 +459,7 @@ ForceVector Lmuur::calculateResultingForce(int failureMode, int safetyCase) {
         // evenwichtsdraagvermogen
         ssoil = mSafetyGSup[safetyCase], sactive = mSafetyGSup[safetyCase],
         sbous = mSafetyQ[safetyCase], spassive = mSafetyGInf[safetyCase],
-        sownweight = mSafetyGSup[safetyCase], sbuoy = mSafetyGInf[safetyCase],
+        sownweight = mSafetyGSup[safetyCase], sbuoy = mSafetyGSup[safetyCase],
         swater = mSafetyGSup[safetyCase];
     }
     if (failureMode == 1) {
@@ -548,6 +546,8 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     double distanceX = 0;
     double distanceY = 0;
     double momenti = 0;
+    std::stringstream stabString;
+    std::stringstream destabString;
     // says if it has a positive effect on tilt (then true).
     bool bsoil = true, bactive = true, bpassive = true, bbous = false,
          bwater = false, bown = true, bbuoy = false;
@@ -558,8 +558,18 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
                   distanceY * mSoilWedgeWeight[i].mForce.x;
         if (bsoil) {
             momentST += mSafetyGInf[safetyCase] * momenti;
+            stabString << "Grondwig:,";
+            stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                       << mSoilWedgeWeight[i].mForce.y << "-" << distanceY << ""
+                       << "*" << mSoilWedgeWeight[i].mForce.x
+                       << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
         } else {
             momentDST += mSafetyGSup[safetyCase] * momenti;
+            destabString << "Grondwig:,";
+            destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                         << mSoilWedgeWeight[i].mForce.y << "-" << distanceY
+                         << "*" << mSoilWedgeWeight[i].mForce.x
+                         << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
         }
     }
     for (size_t i = 0; i < mActiveSoilPressure.size(); ++i) {
@@ -569,8 +579,18 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
                   distanceY * mActiveSoilPressure[i].mForce.x;
         if (bactive) {
             momentST += mSafetyGInf[safetyCase] * momenti;
+            stabString << "Actieve gronddruk:,";
+            stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                       << mActiveSoilPressure[i].mForce.y << "-" << distanceY
+                       << "*" << mActiveSoilPressure[i].mForce.x
+                       << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
         } else {
             momentDST += mSafetyGSup[safetyCase] * momenti;
+            destabString << "Actieve gronddruk:,";
+            destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                         << mActiveSoilPressure[i].mForce.y << "-" << distanceY
+                         << "*" << mActiveSoilPressure[i].mForce.x
+                         << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
         }
     }
     for (size_t i = 0; i < mPassiveSoilPressure.size(); ++i) {
@@ -580,8 +600,18 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
                   distanceY * mPassiveSoilPressure[i].mForce.x;
         if (bpassive) {
             momentST += mSafetyGInf[safetyCase] * momenti;
+            stabString << "Passieve gronddruk:,";
+            stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                       << mPassiveSoilPressure[i].mForce.y << "-" << distanceY
+                       << "*" << mPassiveSoilPressure[i].mForce.x
+                       << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
         } else {
             momentDST += mSafetyGSup[safetyCase] * momenti;
+            destabString << "Passieve gronddruk:,";
+            destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                         << mPassiveSoilPressure[i].mForce.y << "-" << distanceY
+                         << "*" << mPassiveSoilPressure[i].mForce.x
+                         << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
         }
     }
     for (size_t i = 0; i < mBoussinesqResultant.size(); ++i) {
@@ -591,8 +621,14 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
                   distanceY * mBoussinesqResultant[i].mForce.x;
         if (bbous) {
             momentST += mSafetyQ[3] * momenti;
+            stabString << "Boussinesq nul\n";
         } else {
             momentDST += mSafetyQ[safetyCase] * momenti;
+            destabString << "Boussinisq:,";
+            destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                         << mBoussinesqResultant[i].mForce.y << "-" << distanceY
+                         << "*" << mBoussinesqResultant[i].mForce.x
+                         << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
         }
     }
     distanceX = mOwnWeight.mPoE.x + mBl;
@@ -600,8 +636,18 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
     momenti = distanceX * mOwnWeight.mForce.y - distanceY * mOwnWeight.mForce.x;
     if (bown) {
         momentST += mSafetyGInf[safetyCase] * momenti;
+        stabString << "eigengewicht:,";
+        stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                   << mOwnWeight.mForce.y << "-" << distanceY << "*"
+                   << mOwnWeight.mForce.x
+                   << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
+        destabString << "eigengewicht:,";
+        destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                     << mOwnWeight.mForce.y << "-" << distanceY << "*"
+                     << mOwnWeight.mForce.x
+                     << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
     }
     distanceX = mBuoyantForce.mPoE.x + mBl;
     distanceY = mBuoyantForce.mPoE.y - mHv - mHm;
@@ -609,8 +655,18 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
         distanceX * mBuoyantForce.mForce.y - distanceY * mBuoyantForce.mForce.x;
     if (bbuoy) {
         momentST += mSafetyGInf[safetyCase] * momenti;
+        stabString << "Opwaarts:,";
+        stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                   << mBuoyantForce.mForce.y << "-" << distanceY << "*"
+                   << mBuoyantForce.mForce.x
+                   << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
+        destabString << "Opwaarts:,";
+        destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                     << mBuoyantForce.mForce.y << "-" << distanceY << "*"
+                     << mBuoyantForce.mForce.x
+                     << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
     }
     distanceX = mlhsWaterPressure.mPoE.x + mBl;
     distanceY = mlhsWaterPressure.mPoE.y - mHv - mHm;
@@ -618,8 +674,18 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
               distanceY * mlhsWaterPressure.mForce.x;
     if (bwater) {
         momentST += mSafetyGInf[safetyCase] * momenti;
+        stabString << "Waterdruk links:,";
+        stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                   << mlhsWaterPressure.mForce.y << "-" << distanceY << "*"
+                   << mlhsWaterPressure.mForce.x
+                   << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
+        destabString << "Waterdruk links:,";
+        destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                     << mlhsWaterPressure.mForce.y << "-" << distanceY << "*"
+                     << mlhsWaterPressure.mForce.x
+                     << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
     }
     distanceX = mrhsWaterPressure.mPoE.x + mBl;
     distanceY = mrhsWaterPressure.mPoE.y - mHv - mHm;
@@ -627,13 +693,26 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
               distanceY * mrhsWaterPressure.mForce.x;
     if (bwater) {
         momentST += mSafetyGInf[safetyCase] * momenti;
+        stabString << "Waterdruk links:,";
+        stabString << mSafetyGInf[safetyCase] << "*(" << distanceX << "*"
+                   << mrhsWaterPressure.mForce.y << "-" << distanceY << "*"
+                   << mrhsWaterPressure.mForce.x
+                   << ")=" << mSafetyGInf[safetyCase] * momenti << "\n";
     } else {
         momentDST += mSafetyGSup[safetyCase] * momenti;
+        destabString << "Waterdruk links:,";
+        destabString << mSafetyGSup[safetyCase] << "*(" << distanceX << "*"
+                     << mrhsWaterPressure.mForce.y << "-" << distanceY << "*"
+                     << mrhsWaterPressure.mForce.x
+                     << ")=" << mSafetyGSup[safetyCase] * momenti << "\n";
     }
+    destabilizerendMoment = destabString.str();
+    stabilizerendMoment = stabString.str();
     std::cout << "Tilt calculation completed!" << std::endl;
 }
 
 void Lmuur::clearForces() {
+    mexcentricitycalculated = false;
     mSoilWedgeHeight.clear();
     mSoilWedgeWeight.clear();
     mActiveSoilPressure.clear();
@@ -669,6 +748,7 @@ void Lmuur::calculateExcentricity() {
         double dx = (mHm + mHv - mResultingR_d.mPoE.y) *
                     mResultingR_d.mForce.x / mResultingR_d.mForce.y;
         mExcentricity = (mResultingR_d.mPoE.x + dx) - mxII;
+        mexcentricitycalculated = true;
     }
 }
 
@@ -732,7 +812,7 @@ void Lmuur::writeToCSV(std::string file_name) {
         }
         file << "Passieve gronddrukken.\n";
         for (size_t i = 0; i < mPassiveSoilPressure.size(); ++i) {
-            file << "Qa" << i << "," << mPassiveSoilPressure[i].mForce.x << ","
+            file << "Qp" << i << "," << mPassiveSoilPressure[i].mForce.x << ","
                  << mPassiveSoilPressure[i].mForce.y << ","
                  << mPassiveSoilPressure[i].mPoE.x << ","
                  << mPassiveSoilPressure[i].mPoE.y << "\n";
@@ -756,6 +836,11 @@ void Lmuur::writeToCSV(std::string file_name) {
         file << "F_d," << mResultingR_d.mForce.x << ","
              << mResultingR_d.mForce.y << "," << mResultingR_d.mPoE.x << ","
              << mResultingR_d.mPoE.y << "\n";
+        file << "F_gevalSchuiven," << mResultingR_dSchuiven.mForce.x << ","
+             << mResultingR_dSchuiven.mForce.y << ","
+             << mResultingR_dSchuiven.mPoE.x << ","
+             << mResultingR_dSchuiven.mPoE.y << "\n";
+
         file << "\nUNITY CHECKS\n";
         file << "type,R_d,E_d,veiligheid\n";
         file << "Evenwichtsdraagvermogen," << R_d / 100.0 << ","
@@ -766,12 +851,20 @@ void Lmuur::writeToCSV(std::string file_name) {
              << leftProfile.getEffectiveSoilePressure(mHm + mHv -
                                                       mSoilHeightDifference)
              << "\n";
+        file << q_u_tostring << "\n";
         file << "Schuiven," << RH_d << "," << mResultingR_dSchuiven.mForce.x
              << "," << abs(RH_d / mResultingR_dSchuiven.mForce.x) << "\n";
         file << "Kantelen," << momentST << "," << momentDST << ","
              << (momentDST != 0 ? (std::abs(momentST / momentDST)) : 0)
              << ",moment in kNm,\n"
              << std::endl;
+        if (verboseCSV) {
+            file << "Berekening Kantelen:\n";
+            file << "Stabilizerend deel:\n";
+            file << stabilizerendMoment;
+            file << "Destabiliserend deel:\n";
+            file << destabilizerendMoment;
+        }
         if (!file) {
             std::cout << "Write failed." << std::endl;
         }
@@ -815,6 +908,7 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
 
     double B = mBz - std::abs(2 * mExcentricity);
     b_a = B;
+    phi_devenwicht = phi_d * 180.0 / M_PI;
     double L = 100;
     // invloedsfactoren
     double N_q = exp(M_PI * tan(phi_d)) * tan(M_PI / 4.0 + phi_d / 2.0) *
@@ -846,29 +940,32 @@ double Lmuur::calculateR_d(double phi_d, Soilprofile& soilprofile, double depth,
         g_k = std::min(soilprofile.mSoillayers[0].mEffectiveWeight, g_k);
     }
     // hellingsfactoren
-    double i_q =
-        pow((1 -
-             0.7 * abs(mResultingR_d.mForce.x) /
-                 (abs(mResultingR_d.mForce.y) + B * L / (tan(phi_d) * c_d))),
-            3);
+    double i_q = pow(
+        (1 -
+         0.7 * abs(mResultingR_d.mForce.x) /
+             (abs(mResultingR_d.mForce.y) + B * L / (std::tan(phi_d)) * c_d)),
+        3);
     double i_c = (i_q * N_q - 1) / (N_q - 1);
     double i_g =
         pow((1 -
-             abs(mResultingR_d.mForce.x) /
-                 (abs(mResultingR_d.mForce.y) + B * L / (tan(phi_d) * c_d))),
+             abs(mResultingR_d.mForce.x) / (abs(mResultingR_d.mForce.y) +
+                                            B * L / (std::tan(phi_d)) * c_d)),
             3);
+    // i_q = 1, i_c = 1, i_g = 1;
     double R_dToReturn =
         B * L * (d_q * s_q * N_q * p_t * i_q + d_c * s_c * N_c * i_c * c_d +
                  s_g * N_g * g_k * i_g * B / 2.0);
-    // std::cout << "q_u = d_q*s_q*N_q*p_t+d_c*s_c*N_c*c+s_g*N_g*g_k*B/2\n"
-    //           << d_q << "*" << s_q << "*" << N_q << "*" << p_t << "+" <<
-    //           d_c
-    //           << "*" << s_c << "*" << N_c << "*" << c << "/" <<
-    //           effectiveCohesion_safetyF  << "+" << s_g << "*"
-    //           << N_g << "*" << g_k << "*" << B << "/" << 2.0 << "=" <<
-    //           _qu
-    //           << "\n"
-    //           << std::endl;
+    std::stringstream str;
+    str << "R_d = "
+           "B*L((d_q*s_q*N_q*p_t*i_q+d_c*s_c*N_c*c*i_c+s_g*N_g*g_k*i_g*B/2)\n"
+        << B << "*1*"
+        << "(" << d_q << "*" << s_q << "*" << N_q << "*" << p_t << "*" << i_q
+        << "+" << d_c << "*" << s_c << "*" << N_c << "*"
+        << c_d * effectiveCohesion_safetyF << "/" << effectiveCohesion_safetyF
+        << "*" << i_c << "+" << s_g << "*" << N_g << "*" << g_k << "*" << i_g
+        << "*" << B << "/" << 2.0 << ")"
+        << "=" << R_dToReturn / 100.0 << "\n";
+    q_u_tostring = str.str();
     return R_dToReturn;
 }
 
