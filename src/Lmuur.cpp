@@ -621,7 +621,7 @@ void Lmuur::calculateTiltMomentAtFoot(int safetyCase) {
                   distanceY * mBoussinesqResultant[i].mForce.x;
         if (bbous) {
             momentST += mSafetyQ[3] * momenti;
-            stabString << "Boussinesq nul\n";
+            stabString << "Boussinesq,0\n";
         } else {
             momentDST += mSafetyQ[safetyCase] * momenti;
             destabString << "Boussinisq:,";
@@ -772,7 +772,8 @@ void Lmuur::writeToCSV(std::string file_name) {
              << "\n";
         file << "Breedte verticale wand," << mBm << ",Dikte funderingszool,"
              << mHv << "\n";
-        file << "Afmeting dextrateen:," << mtoe << "\n";
+        file << "Afmeting dextrateen(hoogte):," << mtoe << ",breedte:,"
+             << mtoewidth << "\n";
         file << "Opmerkingen\n";
         file << "Het assenstelsel gaat met positieve richting naar "
                 "beneden\nDeze y as valt samen met de linkerzijde van de "
@@ -845,7 +846,7 @@ void Lmuur::writeToCSV(std::string file_name) {
         file << "type,R_d,E_d,veiligheid\n";
         file << "Evenwichtsdraagvermogen," << R_d / 100.0 << ","
              << mResultingR_d.mForce.y << ","
-             << R_d / (100 * mResultingR_d.mForce.y) << ",excentriciteit:,"
+             << R_d / (100 * mResultingR_d.mForce.y) << "\nexcentriciteit:,"
              << mExcentricity << ",B'," << b_a
              << ",effectievespanning op aanzet:,"
              << leftProfile.getEffectiveSoilePressure(mHm + mHv -
